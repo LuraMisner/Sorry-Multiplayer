@@ -1,11 +1,8 @@
-from occupied_type import OccupiedType
-from reserved_type import ReservedType
-
-
 class Space:
-    def __init__(self):
-        self.occupied = OccupiedType.NONE
-        self.type = ReservedType.NONE
+    def __init__(self, ids, occupied, res):
+        self.id = ids
+        self.occupied = occupied
+        self.type = res
 
     def get_occupied(self):
         return self.occupied
@@ -15,9 +12,6 @@ class Space:
 
     def get_type(self):
         return self.type
-
-    def set_type(self, enum):
-        self.type = enum
 
     def to_string(self):
         return str(self.occupied) + ', ' + str(self.type)

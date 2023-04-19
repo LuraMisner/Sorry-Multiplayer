@@ -13,3 +13,4 @@ class ReservedType(Enum):
     YELLOW_SAFETY = 'Yellow Safety'
     GREEN_SAFETY = 'Green Safety'
     BLUE_SAFETY = 'Blue Safety'
+    OUT_OF_BOUNDS = 'Out of Bounds'
