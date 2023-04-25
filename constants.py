@@ -3,7 +3,7 @@ SERVER = '192.168.1.204'
 PORT = 5555
 
 # Window proportions
-WIDTH = 1000
+WIDTH = 1000 + 300
 HEIGHT = 750
 
 # Game stuff
@@ -14,7 +14,7 @@ SLIDES = {'Green': [[1, 4], [9, 13]], 'Red': [[31, 79], [159, 223]],
 SAFETY_STARTS = {'Green': 18, 'Red': 46, 'Blue': 237, 'Yellow': 209}
 
 # Size of graphics
-SELECT_X = 500
+SELECT_X = 500 + 150
 SELECT_Y = 375
 
 CONFIRM_X = 200

@@ -321,11 +321,6 @@ class Board:
 
                 # Start of the slide
                 if space_id == constants.SLIDES['Green'][0][0] or space_id == constants.SLIDES['Green'][1][0]:
-                    pygame.draw.rect(self.window, constants.WHITE, ((col * constants.BOARD_SQUARE) + 1,
-                                                                    (row * constants.BOARD_SQUARE) + 1,
-                                                                    constants.BOARD_SQUARE - 2,
-                                                                    constants.BOARD_SQUARE - 2))
-
                     pygame.draw.rect(self.window, constants.GREEN, ((col * constants.BOARD_SQUARE) + 1,
                                                                     (row * constants.BOARD_SQUARE) + 8,
                                                                     constants.BOARD_SQUARE - 2,
@@ -366,27 +361,141 @@ class Board:
                                                                     constants.BOARD_SQUARE - 2,
                                                                     constants.BOARD_SQUARE - 16))
 
-
-
-
-
             elif s_type == ReservedType.RED_SLIDE:
                 self.draw_box(col * constants.BOARD_SQUARE, row * constants.BOARD_SQUARE, constants.BOARD_SQUARE,
                               constants.BOARD_SQUARE, constants.WHITE, constants.BLACK)
 
-                # TODO: Draw slide visual
+                # Start of the slide
+                if space_id == constants.SLIDES['Red'][0][0] or space_id == constants.SLIDES['Red'][1][0]:
+                    pygame.draw.rect(self.window, constants.RED, ((col * constants.BOARD_SQUARE) + 8,
+                                                                  (row * constants.BOARD_SQUARE) + 1,
+                                                                  constants.BOARD_SQUARE - 16,
+                                                                  constants.BOARD_SQUARE - 2))
+
+                    pygame.draw.polygon(self.window, constants.BLACK, [[(col * constants.BOARD_SQUARE),
+                                                                        (row * constants.BOARD_SQUARE)],
+                                                                       [((col + .5) * constants.BOARD_SQUARE),
+                                                                        ((row + .75) * constants.BOARD_SQUARE)],
+                                                                       [(col + .98) * constants.BOARD_SQUARE,
+                                                                        row * constants.BOARD_SQUARE]])
+
+                    pygame.draw.polygon(self.window, constants.RED, [[(col * constants.BOARD_SQUARE) + 3,
+                                                                      (row * constants.BOARD_SQUARE) + 1],
+                                                                     [((col + .5) * constants.BOARD_SQUARE),
+                                                                      ((row + .75) * constants.BOARD_SQUARE) - 4],
+                                                                     [(col + .98) * constants.BOARD_SQUARE - 3,
+                                                                      row * constants.BOARD_SQUARE + 1]])
+
+                # Slide ends
+                elif space_id == constants.SLIDES['Red'][0][1] or space_id == constants.SLIDES['Red'][1][1]:
+                    pygame.draw.rect(self.window, constants.RED, ((col * constants.BOARD_SQUARE) + 8,
+                                                                  (row * constants.BOARD_SQUARE) + 1,
+                                                                  constants.BOARD_SQUARE - 16,
+                                                                  (constants.BOARD_SQUARE - 2) // 2))
+
+                    center_x = (constants.BOARD_SQUARE * col) + (constants.BOARD_SQUARE // 2)
+                    center_y = (constants.BOARD_SQUARE * row) + (constants.BOARD_SQUARE // 2) + 1
+                    pygame.draw.circle(self.window, constants.BLACK, (center_x, center_y),
+                                       (constants.BOARD_SQUARE // 3) + 2)
+                    pygame.draw.circle(self.window, constants.RED, (center_x, center_y), constants.BOARD_SQUARE // 3)
+
+                else:
+                    pygame.draw.rect(self.window, constants.RED, ((col * constants.BOARD_SQUARE) + 8,
+                                                                  (row * constants.BOARD_SQUARE) + 1,
+                                                                  constants.BOARD_SQUARE - 16,
+                                                                  constants.BOARD_SQUARE - 2))
 
             elif s_type == ReservedType.BLUE_SLIDE:
                 self.draw_box(col * constants.BOARD_SQUARE, row * constants.BOARD_SQUARE, constants.BOARD_SQUARE,
                               constants.BOARD_SQUARE, constants.WHITE, constants.BLACK)
 
-                # TODO: Draw slide visual
+                # Start of the slide
+                if space_id == constants.SLIDES['Blue'][0][0] or space_id == constants.SLIDES['Blue'][1][0]:
+                    pygame.draw.rect(self.window, constants.BLUE, ((col * constants.BOARD_SQUARE) + 1,
+                                                                   (row * constants.BOARD_SQUARE) + 8,
+                                                                   constants.BOARD_SQUARE - 2,
+                                                                   constants.BOARD_SQUARE - 16))
+
+                    pygame.draw.polygon(self.window, constants.BLACK, [[((col + 1) * constants.BOARD_SQUARE),
+                                                                        (row * constants.BOARD_SQUARE)],
+                                                                       [((col + .25) * constants.BOARD_SQUARE),
+                                                                        (row * constants.BOARD_SQUARE) +
+                                                                        (constants.BOARD_SQUARE // 2)],
+                                                                       [(col + 1) * constants.BOARD_SQUARE,
+                                                                        (row + 1) * constants.BOARD_SQUARE]])
+
+                    pygame.draw.polygon(self.window, constants.BLUE, [[((col + 1) * constants.BOARD_SQUARE) - 2,
+                                                                       (row * constants.BOARD_SQUARE) + 4],
+                                                                      [((col + .25) * constants.BOARD_SQUARE) + 4,
+                                                                       (row * constants.BOARD_SQUARE) +
+                                                                       (constants.BOARD_SQUARE // 2)],
+                                                                      [((col + 1) * constants.BOARD_SQUARE) - 2,
+                                                                       ((row + 1) * constants.BOARD_SQUARE) - 4]])
+
+                # Slide ends
+                elif space_id == constants.SLIDES['Blue'][0][1] or space_id == constants.SLIDES['Blue'][1][1]:
+                    pygame.draw.rect(self.window, constants.BLUE, ((col * constants.BOARD_SQUARE) +
+                                                                   constants.BOARD_SQUARE // 2,
+                                                                   (row * constants.BOARD_SQUARE) + 8,
+                                                                   (constants.BOARD_SQUARE - 2) // 2,
+                                                                   constants.BOARD_SQUARE - 16))
+
+                    center_x = (constants.BOARD_SQUARE * col) + (constants.BOARD_SQUARE // 2)
+                    center_y = (constants.BOARD_SQUARE * row) + (constants.BOARD_SQUARE // 2) + 1
+                    pygame.draw.circle(self.window, constants.BLACK, (center_x, center_y),
+                                       (constants.BOARD_SQUARE // 3) + 2)
+                    pygame.draw.circle(self.window, constants.BLUE, (center_x, center_y), constants.BOARD_SQUARE // 3)
+
+                else:
+                    pygame.draw.rect(self.window, constants.BLUE, ((col * constants.BOARD_SQUARE) + 1,
+                                                                   (row * constants.BOARD_SQUARE) + 8,
+                                                                   constants.BOARD_SQUARE - 2,
+                                                                   constants.BOARD_SQUARE - 16))
 
             elif s_type == ReservedType.YELLOW_SLIDE:
                 self.draw_box(col * constants.BOARD_SQUARE, row * constants.BOARD_SQUARE, constants.BOARD_SQUARE,
                               constants.BOARD_SQUARE, constants.WHITE, constants.BLACK)
 
-                # TODO: Draw slide visual
+                # Start of the slide
+                if space_id == constants.SLIDES['Yellow'][0][0] or space_id == constants.SLIDES['Yellow'][1][0]:
+                    pygame.draw.rect(self.window, constants.YELLOW, ((col * constants.BOARD_SQUARE) + 8,
+                                                                     (row * constants.BOARD_SQUARE) + 1,
+                                                                     constants.BOARD_SQUARE - 16,
+                                                                     constants.BOARD_SQUARE - 2))
+
+                    pygame.draw.polygon(self.window, constants.BLACK, [[(col * constants.BOARD_SQUARE),
+                                                                        ((row + 1) * constants.BOARD_SQUARE)],
+                                                                       [((col + .5) * constants.BOARD_SQUARE),
+                                                                        ((row + .25) * constants.BOARD_SQUARE)],
+                                                                       [(col + .98) * constants.BOARD_SQUARE,
+                                                                        (row + 1) * constants.BOARD_SQUARE]])
+
+                    pygame.draw.polygon(self.window, constants.YELLOW, [[(col * constants.BOARD_SQUARE) + 3,
+                                                                         ((row + 1) * constants.BOARD_SQUARE) + 1],
+                                                                        [((col + .5) * constants.BOARD_SQUARE),
+                                                                         ((row + .25) * constants.BOARD_SQUARE) + 4],
+                                                                        [(col + .98) * constants.BOARD_SQUARE - 3,
+                                                                         (row + 1) * constants.BOARD_SQUARE + 1]])
+
+                # Slide ends
+                elif space_id == constants.SLIDES['Yellow'][0][1] or space_id == constants.SLIDES['Yellow'][1][1]:
+                    pygame.draw.rect(self.window, constants.YELLOW, ((col * constants.BOARD_SQUARE) + 8,
+                                                                     (row * constants.BOARD_SQUARE) +
+                                                                     (constants.BOARD_SQUARE // 2),
+                                                                     constants.BOARD_SQUARE - 16,
+                                                                     (constants.BOARD_SQUARE - 2) // 2))
+
+                    center_x = (constants.BOARD_SQUARE * col) + (constants.BOARD_SQUARE // 2)
+                    center_y = (constants.BOARD_SQUARE * row) + (constants.BOARD_SQUARE // 2) + 1
+                    pygame.draw.circle(self.window, constants.BLACK, (center_x, center_y),
+                                       (constants.BOARD_SQUARE // 3) + 2)
+                    pygame.draw.circle(self.window, constants.YELLOW, (center_x, center_y), constants.BOARD_SQUARE // 3)
+
+                else:
+                    pygame.draw.rect(self.window, constants.YELLOW, ((col * constants.BOARD_SQUARE) + 8,
+                                                                     (row * constants.BOARD_SQUARE) + 1,
+                                                                     constants.BOARD_SQUARE - 16,
+                                                                     constants.BOARD_SQUARE - 2))
 
             elif s_type == ReservedType.GREEN_SAFETY:
                 self.draw_box(col * constants.BOARD_SQUARE, row * constants.BOARD_SQUARE, constants.BOARD_SQUARE,

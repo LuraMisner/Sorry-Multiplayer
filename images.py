@@ -8,3 +8,6 @@ class Images(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = pos_x
         self.rect.y = pos_y
+
+    def get_rect(self):
+        return self.rect

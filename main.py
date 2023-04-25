@@ -2,6 +2,7 @@ from board import Board
 import constants
 from client import Client
 import pygame
+import time
 
 
 def main():
@@ -13,12 +14,12 @@ def main():
 
     client = Client(WIN)
     client.select_color()
-    board = Board(WIN)
 
     run = True
     while run:
         WIN.fill((192, 192, 192))
-        board.draw_board()
+        client.draw_screen()
+        client.check_our_turn()
 
         # Check for a quit
         for event in pygame.event.get():

@@ -63,8 +63,33 @@ def threaded_client(connect, p_id, game_id):
                             ready[game_id][p_id] = True
                             color = choice
 
+                    # Check if all players are ready to start
                     elif data == 'start':
                         reply = all(ready[game_id])
+
+                    # Returns the player object to the client
+                    elif data == 'my_player':
+                        reply = game.get_player(color)
+
+                    # Returns a dictionary of all players positions
+                    elif data == 'get_player_positions':
+                        reply = game.get_player_positions()
+
+                    elif data == 'whos_turn':
+                        reply = game.get_turn()
+
+                    elif data == 'draw_card':
+                        game.draw_card()
+
+                    elif data == 'get_card':
+                        reply = game.current_card()
+
+                    elif data == 'end_turn':
+                        game.next_player()
+
+                    # If a player quits, this will remove them from the game
+                    elif data == 'quit':
+                        game.remove_player(color)
 
                     connect.sendall(pickle.dumps(reply))
             else:
@@ -92,13 +117,11 @@ while True:
     # If the game is full or already started, then move to a different game
     if g_id in games:
         if all(ready[g_id]) or len(ready[g_id]) == 4:
-            print('HERE')
             g_id += 1
 
     # If the game does not exist, make a new one
     if g_id not in games:
         print("Creating a new game...")
-        print(g_id)
         games[g_id] = Game()
         ready[g_id] = []
         id_count = 0
