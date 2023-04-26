@@ -12,6 +12,8 @@ class Board:
         
         # Initialize the board
         self.board = []
+        # TODO: Finish this
+        self.inorder_mapping = [0, 1, 2, 18, 34, 50, 66, 82, 93, 3, 4, 20, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         self.set_up_board()
 
     def set_up_board(self):

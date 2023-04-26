@@ -69,3 +69,8 @@ class Game:
             for p in self.players:
                 if p.get_color() == color:
                     return p
+
+    def update_player_location(self, color, positions):
+        for p in self.players:
+            if p.get_color() == color:
+                p.update_positions(positions)

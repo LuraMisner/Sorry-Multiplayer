@@ -262,16 +262,15 @@ class Client:
         self.get_server_response('end_turn')
 
     def handle_movement(self, card):
-        self.draw_screen()
-
         movement_group = pygame.sprite.Group()
         movement_group.add(Images(750, 75, 'images/movement/select_piece.png'))
         movement_group.draw(self.window)
+        self.draw_card()
         pygame.display.update()
 
         val = card.get_value()
         piece_id = self.select_piece()
-        piece_location = self.player.get_positions()[piece_id]
+        possible_moves = self.calculate_end_positions(self.player.get_positions()[piece_id], card)
 
         # TODO: Figure out why these images get blurry
         movement_group.empty()
@@ -294,17 +293,17 @@ class Client:
 
         selection_made = False
         while not selection_made:
-            self.draw_box(720, 75, 280, 280, constants.BACKGROUND, constants.BACKGROUND)
             choices = []
+            self.draw_box(720, 75, 280, 280, constants.BACKGROUND, constants.BACKGROUND)
 
             # Calculate the options and let them select one
             if val == Value.One or val == Value.Two:
                 # Either move forward or move a piece out from the start
-                if piece_location == self.player.get_start():
+                if 'start' in possible_moves:
                     start = Images(770, 200 + (len(choices) * 60), 'images/movement/move_start_btn.png')
                     movement_group.add(start)
                     choices.append((start.get_rect(), 'start'))
-                else:
+                elif 'forward' in possible_moves:
                     forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
                     movement_group.add(forward)
                     choices.append((forward.get_rect(), 'forward'))
@@ -312,32 +311,90 @@ class Client:
                 cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
                 movement_group.add(cancel)
                 choices.append((cancel.get_rect(), 'cancel'))
-
                 movement_group.draw(self.window)
 
             elif val == Value.Three or val == Value.Five or val == Value.Eight or val == Value.Twelve:
                 # Can only move forward
-                selection_made = True
+                if 'forward' in possible_moves:
+                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
+                    movement_group.add(forward)
+                    choices.append((forward.get_rect(), 'forward'))
+
+                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
+                movement_group.add(cancel)
+                choices.append((cancel.get_rect(), 'cancel'))
+                movement_group.draw(self.window)
 
             elif val == Value.Four:
                 # Move backwards
-                selection_made = True
+                if 'backward' in possible_moves:
+                    backward = Images(770, 200 + (len(choices) * 60), 'images/movement/backward_btn.png')
+                    movement_group.add(backward)
+                    choices.append((backward.get_rect(), 'backward'))
+
+                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
+                movement_group.add(cancel)
+                choices.append((cancel.get_rect(), 'cancel'))
+                movement_group.draw(self.window)
 
             elif val == Value.Seven:
+                # TODO: WIll have to do something special here
                 # Can move forward 7 or split between 2 pieces
-                selection_made = True
+                if 'forward' in possible_moves:
+                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
+                    movement_group.add(forward)
+                    choices.append((forward.get_rect(), 'forward'))
+
+                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
+                movement_group.add(cancel)
+                choices.append((cancel.get_rect(), 'cancel'))
+                movement_group.draw(self.window)
 
             elif val == Value.Ten:
                 # Move forward 10 or backwards 1
-                selection_made = True
+                if 'forward' in possible_moves:
+                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
+                    movement_group.add(forward)
+                    choices.append((forward.get_rect(), 'forward'))
+
+                elif 'backward' in possible_moves:
+                    backward = Images(770, 200 + (len(choices) * 60), 'images/movement/backward_btn.png')
+                    movement_group.add(backward)
+                    choices.append((backward.get_rect(), 'backward'))
+
+                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
+                movement_group.add(cancel)
+                choices.append((cancel.get_rect(), 'cancel'))
+                movement_group.draw(self.window)
 
             elif val == Value.Eleven:
                 # Move forward 11 or swap places with another player
-                selection_made = True
+                if 'forward' in possible_moves:
+                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
+                    movement_group.add(forward)
+                    choices.append((forward.get_rect(), 'forward'))
+
+                elif 'swap' in possible_moves:
+                    swap = Images(770, 200 + (len(choices) * 60), 'images/movement/swap_btn.png')
+                    movement_group.add(swap)
+                    choices.append((swap.get_rect(), 'swap'))
+
+                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
+                movement_group.add(cancel)
+                choices.append((cancel.get_rect(), 'cancel'))
+                movement_group.draw(self.window)
 
             elif val == Value.Sorry:
                 # Move a piece from spawn to swap with a player (can be any piece if none in spawn)
-                selection_made = True
+                if 'swap' in possible_moves:
+                    swap = Images(770, 200 + (len(choices) * 60), 'images/movement/swap_btn.png')
+                    movement_group.add(swap)
+                    choices.append((swap.get_rect(), 'swap'))
+
+                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
+                movement_group.add(cancel)
+                choices.append((cancel.get_rect(), 'cancel'))
+                movement_group.draw(self.window)
 
             # Check for clicks
             ev = pygame.event.get()
@@ -347,15 +404,26 @@ class Client:
 
                     for rct, name in choices:
                         if rct.collidepoint(pos):
+                            # If they canceled the move, allow them to reselect a piece and go through the process again
                             if name == 'cancel':
                                 return self.handle_movement(card)
+
+                            # Otherwise, update their end location based on what they selected
                             else:
-                                pass
-                            selection_made = True
+                                if name in possible_moves:
+                                    self.player.update_position(piece_id, possible_moves[name])
+                                    selection_made = True
 
             pygame.display.update()
 
-        # TODO: Update movement on server side
+        # Update movement on server side
+        self.get_server_response(f'update_position {self.player.get_positions()}')
+
+        if val == Value.Two:
+            # Draw again for two
+            self.handle_turn()
+
+        self.get_server_response('end_turn')
 
     def select_piece(self) -> int:
         """
@@ -380,3 +448,8 @@ class Client:
                         if col * constants.BOARD_SQUARE <= x <= (col + 1) * constants.BOARD_SQUARE and \
                            row * constants.BOARD_SQUARE <= y <= (row + 1) * constants.BOARD_SQUARE:
                             return ind
+
+    def calculate_end_positions(self, start_pos, card) -> {str: int}:
+        possible_moves = {}
+
+        return possible_moves

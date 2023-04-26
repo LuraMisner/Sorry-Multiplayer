@@ -27,3 +27,9 @@ class Player:
 
     def get_slides(self):
         return self.slides
+
+    def update_position(self, index, new_position):
+        self.positions[index] = new_position
+
+    def update_positions(self, new_positions):
+        self.positions = new_positions

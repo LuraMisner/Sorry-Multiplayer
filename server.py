@@ -75,15 +75,29 @@ def threaded_client(connect, p_id, game_id):
                     elif data == 'get_player_positions':
                         reply = game.get_player_positions()
 
+                    # Update the player position
+                    elif data[:15] == 'update_position':
+                        position = data[16:]
+                        print(position)
+                        game.update_player_location(color, position)
+
+                    # Ends the turn and moves to the next player
+                    elif data == 'end_turn':
+                        game.next_player()
+
+                    # Returns the players color of whose turn it is
                     elif data == 'whos_turn':
                         reply = game.get_turn()
 
+                    # Draw the next card from the deck
                     elif data == 'draw_card':
                         game.draw_card()
 
+                    # Get the card value of the current card
                     elif data == 'get_card':
                         reply = game.current_card()
 
+                    # Ends the players turn and moves to the next player
                     elif data == 'end_turn':
                         game.next_player()
 
