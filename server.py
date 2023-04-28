@@ -3,6 +3,7 @@ import socket
 import pickle
 from _thread import *
 from game import Game
+from ast import literal_eval
 
 # Running on local host
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -77,8 +78,7 @@ def threaded_client(connect, p_id, game_id):
 
                     # Update the player position
                     elif data[:15] == 'update_position':
-                        position = data[16:]
-                        print(position)
+                        position = literal_eval(data[16:])
                         game.update_player_location(color, position)
 
                     # Ends the turn and moves to the next player

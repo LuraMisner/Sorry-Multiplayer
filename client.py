@@ -4,6 +4,9 @@ from card_value import Value
 from images import Images
 from network import Network
 import pygame
+from reserved_type import ReservedType
+import time
+from card import Card
 
 
 # noinspection PyTypeChecker
@@ -161,6 +164,7 @@ class Client:
 
     def draw_players(self):
         player_positions = self.get_server_response('get_player_positions')
+        print(player_positions)
 
         for player in player_positions.keys():
             for ind, piece in enumerate(player_positions[player]):
@@ -262,139 +266,60 @@ class Client:
         self.get_server_response('end_turn')
 
     def handle_movement(self, card):
+        self.draw_screen()
         movement_group = pygame.sprite.Group()
         movement_group.add(Images(750, 75, 'images/movement/select_piece.png'))
         movement_group.draw(self.window)
-        self.draw_card()
         pygame.display.update()
 
+        card = Card(Value.One)
         val = card.get_value()
         piece_id = self.select_piece()
         possible_moves = self.calculate_end_positions(self.player.get_positions()[piece_id], card)
 
-        # TODO: Figure out why these images get blurry
-        movement_group.empty()
-        movement_group.add(Images(730, 75, 'images/movement/you_selected.png'))
-        movement_group.add(Images(780, 110, 'images/movement/piece.png'))
-
-        # Draw piece number
-        if piece_id == 0:
-            movement_group.add(Images(875, 119, 'images/movement/one.png'))
-        elif piece_id == 1:
-            movement_group.add(Images(875, 119, 'images/movement/two.png'))
-        elif piece_id == 2:
-            movement_group.add(Images(875, 119, 'images/movement/three.png'))
-        else:
-            movement_group.add(Images(875, 119, 'images/movement/four.png'))
-
-        self.draw_screen()
-        movement_group.draw(self.window)
-        pygame.display.flip()
-
         selection_made = False
         while not selection_made:
-            choices = []
+            # Title
             self.draw_box(720, 75, 280, 280, constants.BACKGROUND, constants.BACKGROUND)
+            movement_group.empty()
+            movement_group.add(Images(730, 75, 'images/movement/you_selected.png'))
+            movement_group.add(Images(780, 110, 'images/movement/piece.png'))
 
-            # Calculate the options and let them select one
-            if val == Value.One or val == Value.Two:
-                # Either move forward or move a piece out from the start
-                if 'start' in possible_moves:
-                    start = Images(770, 200 + (len(choices) * 60), 'images/movement/move_start_btn.png')
-                    movement_group.add(start)
-                    choices.append((start.get_rect(), 'start'))
-                elif 'forward' in possible_moves:
-                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
-                    movement_group.add(forward)
-                    choices.append((forward.get_rect(), 'forward'))
+            # Draw piece number
+            if piece_id == 0:
+                movement_group.add(Images(875, 119, 'images/movement/one.png'))
+            elif piece_id == 1:
+                movement_group.add(Images(875, 119, 'images/movement/two.png'))
+            elif piece_id == 2:
+                movement_group.add(Images(875, 119, 'images/movement/three.png'))
+            else:
+                movement_group.add(Images(875, 119, 'images/movement/four.png'))
 
-                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-                movement_group.add(cancel)
-                choices.append((cancel.get_rect(), 'cancel'))
-                movement_group.draw(self.window)
+            choices = []
 
-            elif val == Value.Three or val == Value.Five or val == Value.Eight or val == Value.Twelve:
-                # Can only move forward
-                if 'forward' in possible_moves:
-                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
-                    movement_group.add(forward)
-                    choices.append((forward.get_rect(), 'forward'))
+            if 'start' in possible_moves:
+                start = Images(770, 200 + (len(choices) * 60), 'images/movement/move_start_btn.png')
+                movement_group.add(start)
+                choices.append((start.get_rect(), 'start'))
+            elif 'forward' in possible_moves:
+                forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
+                movement_group.add(forward)
+                choices.append((forward.get_rect(), 'forward'))
 
-                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-                movement_group.add(cancel)
-                choices.append((cancel.get_rect(), 'cancel'))
-                movement_group.draw(self.window)
+            elif 'backward' in possible_moves:
+                backward = Images(770, 200 + (len(choices) * 60), 'images/movement/backward_btn.png')
+                movement_group.add(backward)
+                choices.append((backward.get_rect(), 'backward'))
 
-            elif val == Value.Four:
-                # Move backwards
-                if 'backward' in possible_moves:
-                    backward = Images(770, 200 + (len(choices) * 60), 'images/movement/backward_btn.png')
-                    movement_group.add(backward)
-                    choices.append((backward.get_rect(), 'backward'))
+            elif 'swap' in possible_moves:
+                swap = Images(770, 200 + (len(choices) * 60), 'images/movement/swap_btn.png')
+                movement_group.add(swap)
+                choices.append((swap.get_rect(), 'swap'))
 
-                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-                movement_group.add(cancel)
-                choices.append((cancel.get_rect(), 'cancel'))
-                movement_group.draw(self.window)
-
-            elif val == Value.Seven:
-                # TODO: WIll have to do something special here
-                # Can move forward 7 or split between 2 pieces
-                if 'forward' in possible_moves:
-                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
-                    movement_group.add(forward)
-                    choices.append((forward.get_rect(), 'forward'))
-
-                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-                movement_group.add(cancel)
-                choices.append((cancel.get_rect(), 'cancel'))
-                movement_group.draw(self.window)
-
-            elif val == Value.Ten:
-                # Move forward 10 or backwards 1
-                if 'forward' in possible_moves:
-                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
-                    movement_group.add(forward)
-                    choices.append((forward.get_rect(), 'forward'))
-
-                elif 'backward' in possible_moves:
-                    backward = Images(770, 200 + (len(choices) * 60), 'images/movement/backward_btn.png')
-                    movement_group.add(backward)
-                    choices.append((backward.get_rect(), 'backward'))
-
-                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-                movement_group.add(cancel)
-                choices.append((cancel.get_rect(), 'cancel'))
-                movement_group.draw(self.window)
-
-            elif val == Value.Eleven:
-                # Move forward 11 or swap places with another player
-                if 'forward' in possible_moves:
-                    forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
-                    movement_group.add(forward)
-                    choices.append((forward.get_rect(), 'forward'))
-
-                elif 'swap' in possible_moves:
-                    swap = Images(770, 200 + (len(choices) * 60), 'images/movement/swap_btn.png')
-                    movement_group.add(swap)
-                    choices.append((swap.get_rect(), 'swap'))
-
-                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-                movement_group.add(cancel)
-                choices.append((cancel.get_rect(), 'cancel'))
-                movement_group.draw(self.window)
-
-            elif val == Value.Sorry:
-                # Move a piece from spawn to swap with a player (can be any piece if none in spawn)
-                if 'swap' in possible_moves:
-                    swap = Images(770, 200 + (len(choices) * 60), 'images/movement/swap_btn.png')
-                    movement_group.add(swap)
-                    choices.append((swap.get_rect(), 'swap'))
-
-                cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-                movement_group.add(cancel)
-                choices.append((cancel.get_rect(), 'cancel'))
-                movement_group.draw(self.window)
+            cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
+            movement_group.add(cancel)
+            choices.append((cancel.get_rect(), 'cancel'))
+            movement_group.draw(self.window)
 
             # Check for clicks
             ev = pygame.event.get()
@@ -418,6 +343,13 @@ class Client:
 
         # Update movement on server side
         self.get_server_response(f'update_position {self.player.get_positions()}')
+        self.draw_screen()
+
+        # Check if this is the start of a slide
+        time.sleep(.25)
+        self.player.update_position(piece_id, self.check_slide(self.player.get_positions()[piece_id]))
+        self.get_server_response(f'update_position {self.player.get_positions()}')
+        self.draw_screen()
 
         if val == Value.Two:
             # Draw again for two
@@ -451,5 +383,151 @@ class Client:
 
     def calculate_end_positions(self, start_pos, card) -> {str: int}:
         possible_moves = {}
+        val = card.get_value()
+
+        # One or Two
+        if val == Value.One or val == Value.Two:
+            if start_pos == self.player.get_start():
+                possible_moves['start'] = self.board.inorder_mapping[self.board.inorder_mapping.index(start_pos) - 1]
+            else:
+                if val == Value.One:
+                    end_pos = self.calculate_forward_position(start_pos, 1)
+                    if not end_pos == -1:
+                        possible_moves['forward'] = end_pos
+                else:
+                    end_pos = self.calculate_forward_position(start_pos, 2)
+                    if not end_pos == -1:
+                        possible_moves['forward'] = end_pos
+
+        # Three
+        elif val == Value.Three:
+            end_pos = self.calculate_forward_position(start_pos, 3)
+            if not end_pos == -1:
+                possible_moves['forward'] = end_pos
+
+        # Four
+        elif val == Value.Four:
+            end_pos = self.calculate_backward_position(start_pos, 4)
+            if not end_pos == -1:
+                possible_moves['backward'] = end_pos
+
+        # Five
+        elif val == Value.Five:
+            end_pos = self.calculate_forward_position(start_pos, 5)
+            if not end_pos == -1:
+                possible_moves['forward'] = end_pos
+
+        # Seven
+        elif val == Value.Seven:
+            # TODO: Add split option in later
+            end_pos = self.calculate_forward_position(start_pos, 7)
+            if not end_pos == -1:
+                possible_moves['forward'] = end_pos
+
+        # Eight
+        elif val == Value.Eight:
+            end_pos = self.calculate_forward_position(start_pos, 8)
+            if not end_pos == -1:
+                possible_moves['forward'] = end_pos
+
+        # Ten
+        elif val == Value.Ten:
+            end_pos = self.calculate_forward_position(start_pos, 10)
+            if not end_pos == -1:
+                possible_moves['forward'] = end_pos
+
+            end_pos = self.calculate_backward_position(start_pos, 1)
+            if not end_pos == -1:
+                possible_moves['backward'] = end_pos
+
+        # Eleven
+        elif val == Value.Eleven:
+            end_pos = self.calculate_forward_position(start_pos, 11)
+            if not end_pos == -1:
+                possible_moves['forward'] = end_pos
+
+            end_pos = self.calculate_swap_position()
+            if not end_pos == -1:
+                possible_moves['swap'] = end_pos
+
+        # Twelve:
+        elif val == Value.Twelve:
+            end_pos = self.calculate_forward_position(start_pos, 12)
+            if not end_pos == -1:
+                possible_moves['forward'] = end_pos
+
+        # Sorry
+        elif val == Value.Sorry:
+            if start_pos == self.player.get_start():
+                end_pos = self.calculate_swap_position()
+                if not end_pos == -1:
+                    possible_moves['swap'] = end_pos
 
         return possible_moves
+
+    def calculate_forward_position(self, start_pos, moves) -> int:
+        space_type = self.board.board[start_pos].get_type()
+
+        # If this piece is not one that can be moved forward
+        if space_type == ReservedType.START or space_type == ReservedType.HOME:
+            return -1
+
+        # Otherwise check that it can be moved the amount of spaces. If it reaches Home before then, it can't.
+        space_ind = self.board.inorder_mapping.index(start_pos)
+
+        while moves > 0:
+            space_ind = (space_ind + 1) % len(self.board.inorder_mapping)
+            space_type = self.board.board[self.board.inorder_mapping[space_ind]].get_type()
+
+            if self.board.inorder_mapping[space_ind] == self.player.get_home():
+                if moves != 1:
+                    return -1
+                moves -= 1
+
+            # If this isn't a start/home or other colors safety then decrease the moves
+            elif space_type != ReservedType.HOME and space_type != ReservedType.START and \
+                    self.check_other_safety(self.board.inorder_mapping[space_ind]):
+                moves -= 1
+
+        return self.board.inorder_mapping[space_ind]
+
+    def check_other_safety(self, space_id):
+        space_type = self.board.board[space_id].get_type()
+        color = self.player.get_color()
+
+        if (color == 'Green' and space_type == ReservedType.GREEN_SAFETY) or \
+           (color == 'Red' and space_type == ReservedType.RED_SAFETY) or \
+           (color == 'Blue' and space_type == ReservedType.BLUE_SAFETY) or \
+           (color == 'Yellow' and space_type == ReservedType.YELLOW_SAFETY):
+            return True
+
+        elif 'Safety' not in space_type.value:
+            return True
+
+        return False
+
+    def check_slide(self, start_pos):
+        space_value = self.board.board[start_pos].get_type().value
+        if 'Slide' not in space_value:
+            return start_pos
+
+        # Can't take your own slide
+        elif self.player.get_color() in space_value:
+            return start_pos
+
+        else:
+            # Calculate the end position
+            for key in constants.SLIDES.keys():
+                for slide in constants.SLIDES[key]:
+
+                    s, e = slide
+                    if s == start_pos:
+                        return e
+
+        return start_pos
+
+    def calculate_backward_position(self, start_pos, moves) -> int:
+        return -1
+
+    def calculate_swap_position(self) -> int:
+        return -1
