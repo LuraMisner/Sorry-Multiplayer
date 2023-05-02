@@ -81,6 +81,10 @@ def threaded_client(connect, p_id, game_id):
                         position = literal_eval(data[16:])
                         game.update_player_location(color, position)
 
+                    elif data[:20] == 'update_all_positions':
+                        positions = literal_eval(data[21:])
+                        game.update_all_locations(positions)
+
                     # Ends the turn and moves to the next player
                     elif data == 'end_turn':
                         game.next_player()

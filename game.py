@@ -74,3 +74,7 @@ class Game:
         for p in self.players:
             if p.get_color() == color:
                 p.update_positions(positions)
+
+    def update_all_locations(self, player_pos):
+        for key in player_pos.keys():
+            self.update_player_location(key, player_pos[key])
