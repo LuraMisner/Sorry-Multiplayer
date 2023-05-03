@@ -15,7 +15,6 @@ class Client:
         self.board = Board(self.window)
         self.network = Network()
 
-        # TODO: Implement these changes tonight
         self.color = None
         self.player_positions = {}
 
@@ -24,6 +23,9 @@ class Client:
         self.initialize_image_groups()
 
     def initialize_image_groups(self):
+        """
+        Initializes sprite groups and adds images to them
+        """
         title = Images(500, 175, 'images/start_screen/sorry_title.png')
         self.char_select_group.add(title)
 
@@ -48,12 +50,23 @@ class Client:
         self.rules.add(Images(1000, 0, 'images/titles/rules.png'))
 
     def get_server_response(self, query):
+        """
+        Sends a request to the server and gets a response
+        :param query: String request being sent to the server
+        :return: Reply from server. Could be nothing, or anything.
+        """
         return self.network.send(query)
 
     def update_positions(self):
+        """
+        Updates all player positions
+        """
         self.player_positions = self.get_server_response('get_player_positions')
 
     def select_color(self):
+        """
+        Draws the character select screen and lets the player select a color to be. Updates it on the server side
+        """
         selected = False
         choice = None
         select_group = pygame.sprite.Group()
@@ -120,13 +133,16 @@ class Client:
             return self.wait_for_start()
 
     def wait_for_start(self):
+        """
+        Function for updating the screen waiting for all players to be ready (after this player is ready)
+        """
         start = self.get_server_response('start')
 
         while not start:
             rdy = self.get_server_response('num_ready')
 
-            self.draw_box(1, 600, constants.SELECT_X-2, 20, constants.YELLOW, constants.YELLOW)
-            self.draw_box(651, 450, 100, 20, constants.BLUE, constants.BLUE)
+            self.draw_box(1, 450, constants.SELECT_X-3, 20, constants.YELLOW, constants.YELLOW)
+            self.draw_box(652, 450, 100, 20, constants.BLUE, constants.BLUE)
 
             self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 575, 450)
             pygame.display.flip()
@@ -152,6 +168,13 @@ class Client:
         pygame.draw.rect(self.window, color, rect)
 
     def draw_transparent_box(self, x, y, width, height):
+        """
+        Draws a transparent box, used to highlight locations
+        :param x: Integer top-left x position
+        :param y: Integer top-left y position
+        :param width: Integer
+        :param height: Integer
+        """
         s = pygame.Surface((width, height), pygame.SRCALPHA)
         s.fill((0, 0, 0, 180))
         self.window.blit(s, (x, y))
@@ -169,6 +192,9 @@ class Client:
         self.window.blit(font.render(text, True, color), (x, y))
 
     def draw_players(self):
+        """
+        Draws all player pieces on the board
+        """
         self.update_positions()
 
         for player in self.player_positions.keys():
@@ -196,6 +222,9 @@ class Client:
                 self.draw_text(str(ind + 1), 30, constants.BLACK, center_x - 7, x + 13)
 
     def draw_screen(self):
+        """
+        Draws everything that needs to be on the board in each refresh
+        """
         self.window.fill(constants.BACKGROUND)
         self.board.draw_board()
         self.draw_players()
@@ -205,6 +234,9 @@ class Client:
         pygame.display.update()
 
     def draw_card(self):
+        """
+        Draws the card representing the card drawn
+        """
         card_group = pygame.sprite.Group()
         card = self.get_server_response('get_card')
         if card:
@@ -236,6 +268,9 @@ class Client:
             card_group.draw(self.window)
 
     def draw_turn(self):
+        """
+        Draws title to represent whose turn it is
+        """
         color = self.get_server_response('whos_turn')
         title_group = pygame.sprite.Group()
 
@@ -260,16 +295,27 @@ class Client:
         title_group.draw(self.window)
 
     def check_our_turn(self):
+        """
+        Checks the server to see if it is the players turn, if so it calls a function to handle the turn
+        """
         reply = self.get_server_response('whos_turn')
         if reply == self.color:
             self.handle_turn()
 
     def handle_turn(self):
+        """
+        Updates player positions, draws the card for the players turn and then sends them to handle the movement
+        """
         self.update_positions()
         self.get_server_response('draw_card')
         self.handle_movement(self.get_server_response('get_card'))
 
     def handle_movement(self, card):
+        """
+        Handles the user selection a piece and a move to make, and updates it server side
+        :param card: Card object of the card drawn
+        """
+
         # Select a piece header
         self.draw_screen()
         movement_group = pygame.sprite.Group()
@@ -413,6 +459,12 @@ class Client:
                             return ind
 
     def calculate_end_positions(self, start_pos, card) -> {str: int}:
+        """
+        Main function for calculating end positions for each card
+        :param start_pos: Integer representing the starting position
+        :param card: Card object representing the card drawn
+        :return: Dictionary mapping a name to the end position {str : int} for every possible move
+        """
         possible_moves = {}
         val = card.get_value()
 
@@ -508,6 +560,12 @@ class Client:
         return possible_moves
 
     def calculate_forward_position(self, start_pos, moves) -> int:
+        """
+        Calculates the end position of a player moving forward
+        :param start_pos: Integer representing the start position
+        :param moves: Integer representing how many steps forward
+        :return: Integer representing the players end position
+        """
         space_type = self.board.board[start_pos].get_type()
 
         # If this piece is not one that can be moved forward
@@ -533,7 +591,12 @@ class Client:
 
         return self.board.inorder_mapping[space_ind]
 
-    def check_other_safety(self, space_id):
+    def check_other_safety(self, space_id) -> bool:
+        """
+        Checks if a space is another players safety/home so that it can be skipped over when moving around the board
+        :param space_id: Integer representing the ID of the space
+        :return: Boolean of whether this space should be counted while moving
+        """
         space_type = self.board.board[space_id].get_type()
 
         if (self.color == 'Green' and space_type == ReservedType.GREEN_SAFETY) or \
@@ -547,7 +610,13 @@ class Client:
 
         return False
 
-    def check_slide(self, start_pos, piece_id):
+    def check_slide(self, start_pos, piece_id) -> int:
+        """
+        Checks if the end position is the start of a slide, and updates the position accordingly
+        :param start_pos: Integer of start position
+        :param piece_id: Integer representing the pieces index
+        :return: Integer representing the end position
+        """
         space_value = self.board.board[start_pos].get_type().value
         if 'Slide' not in space_value:
             return start_pos
@@ -577,6 +646,12 @@ class Client:
         return start_pos
 
     def check_occupied(self, space_id, index):
+        """
+        Checks if a space is already occupied by another player, and handles the necessary adjustments to positions
+        for sending them back to start.
+        :param space_id: Integer of the space ID
+        :param index: Index of the piece that is being moved there
+        """
         self.update_positions()
 
         for key in self.player_positions.keys():
@@ -597,6 +672,12 @@ class Client:
         self.get_server_response(f'update_all_positions {self.player_positions}')
 
     def calculate_backward_position(self, start_pos, moves) -> int:
+        """
+        Calculates the end position of a user moving backwards
+        :param start_pos: Integer of the start ID
+        :param moves: Integer representing how many moves backwards
+        :return: Integer representing the end position
+        """
         space_type = self.board.board[start_pos].get_type()
 
         # If this piece is not one that can be moved forward
@@ -622,6 +703,10 @@ class Client:
         return self.board.inorder_mapping[space_ind]
 
     def calculate_swap_position(self) -> [int]:
+        """
+        Finds all possible end positions that a user can swap with.
+        :return: Array of Integers representing the ID of the end positions
+        """
         self.update_positions()
 
         # Find the end positions
@@ -637,9 +722,14 @@ class Client:
 
         return end_positions
 
-    def check_possible(self, positions, card):
+    def check_possible(self, positions, card) -> bool:
+        """
+        Checks how many pieces there are movements for
+        :param positions: Array of integers representing current piece locations
+        :param card: Card object that was drawn
+        :return: Boolean representing if there is at least one possible move
+        """
         count = 0
-
         for p in positions:
             possible = self.calculate_end_positions(p, card)
             if not possible:
@@ -650,6 +740,10 @@ class Client:
         return True
 
     def pick_swap(self) -> int:
+        """
+        Allows user to pick another users piece to swap positions with
+        :return: Integer representing the id of the space selected
+        """
         self.draw_screen()
         possible_swaps = self.calculate_swap_position()
 
@@ -706,7 +800,13 @@ class Client:
 
         return selected
 
-    def selection_title(self, sprite_group, selected_id):
+    def selection_title(self, sprite_group, selected_id) -> pygame.sprite.Group:
+        """
+        Updates the title images displayed based on what the player selected
+        :param sprite_group: Sprite group that images are added to
+        :param selected_id: Integer, id of the space selected
+        :return: Sprite group populated with proper images
+        """
         color = None
         ind = 0
 
@@ -742,6 +842,9 @@ class Client:
         return sprite_group
 
     def no_possible_moves(self):
+        """
+        Adds title and confirm button to tell the user there is no possible moves for that turn
+        """
 
         # Draw screen
         self.draw_screen()
@@ -763,5 +866,33 @@ class Client:
                     if btn.rect.collidepoint(pos):
                         confirm = True
 
+    def win_screen(self):
+        winner = self.get_server_response('winner')
 
-# TODO: Handle 7 split, win condition
+        title_group = pygame.sprite.Group()
+        self.window.fill(constants.BACKGROUND)
+
+        # Titles
+        if self.color == winner:
+            title_group.add(Images(200, 100, 'images/end_screen/congrats.png'))
+
+            if winner == 'Red':
+                title_group.add(Images(200, 250, 'images/end_screen/you_r.png'))
+            elif winner == 'Blue':
+                title_group.add(Images(200, 250, 'images/end_screen/you_b.png'))
+            elif winner == 'Green':
+                title_group.add(Images(200, 250, 'images/end_screen/you_g.png'))
+            else:
+                title_group.add(Images(200, 250, 'images/end_screen/you_y.png'))
+
+        elif winner == 'Red':
+            title_group.add(Images(200, 100, 'images/end_screen/red_wins.png'))
+        elif winner == 'Blue':
+            title_group.add(Images(200, 100, 'images/end_screen/blue_wins.png'))
+        elif winner == 'Green':
+            title_group.add(Images(200, 100, 'images/end_screen/green_wins.png'))
+        else:
+            title_group.add(Images(200, 100, 'images/end_screen/yellow_wins.png'))
+
+        title_group.draw(self.window)
+        pygame.display.update()

@@ -103,7 +103,17 @@ def threaded_client(connect, p_id, game_id):
 
                     # Ends the players turn and moves to the next player
                     elif data == 'end_turn':
+                        game.check_win()
                         game.next_player()
+
+                    # Check if there is a winner
+                    elif data == 'check_won':
+                        game.check_win()
+                        reply = game.won
+
+                    # Get the winners name
+                    elif data == 'winner':
+                        reply = game.winner
 
                     # If a player quits, this will remove them from the game
                     elif data == 'quit':

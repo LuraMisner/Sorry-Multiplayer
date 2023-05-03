@@ -1,3 +1,4 @@
+import constants
 from player import Player
 from deck import Deck
 
@@ -15,6 +16,7 @@ class Game:
 
         self.positions = {}
         self.won = False
+        self.winner = None
 
     def add_player(self, color):
         if color in self.available_colors:
@@ -78,3 +80,11 @@ class Game:
     def update_all_locations(self, player_pos):
         for key in player_pos.keys():
             self.update_player_location(key, player_pos[key])
+
+    def check_win(self):
+        self.refresh_positions()
+        for p in self.players:
+            color = p.get_color()
+            if [constants.HOMES[color]] * 4 == self.positions[color]:
+                self.won = True
+                self.winner = color
