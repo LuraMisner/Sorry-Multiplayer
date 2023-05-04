@@ -81,13 +81,13 @@ class Client:
             # If a color is no longer available, then grey it out
             available_colors = self.get_server_response('available_colors')
             if 'Green' not in available_colors:
-                self.draw_transparent_box(0, 0, constants.SELECT_X, constants.SELECT_Y)
+                self.draw_transparent_box(0, 0, constants.SELECT_X, constants.SELECT_Y, 180)
             if 'Red' not in available_colors:
-                self.draw_transparent_box(650, 0, constants.SELECT_X, constants.SELECT_Y)
+                self.draw_transparent_box(650, 0, constants.SELECT_X, constants.SELECT_Y, 180)
             if 'Yellow' not in available_colors:
-                self.draw_transparent_box(0, 375, constants.SELECT_X, constants.SELECT_Y)
+                self.draw_transparent_box(0, 375, constants.SELECT_X, constants.SELECT_Y, 180)
             if 'Blue' not in available_colors:
-                self.draw_transparent_box(650, 375, constants.SELECT_X, constants.SELECT_Y)
+                self.draw_transparent_box(650, 375, constants.SELECT_X, constants.SELECT_Y, 180)
 
             # Display the number ready
             rdy = self.get_server_response('num_ready')
@@ -167,16 +167,17 @@ class Client:
         rect = pygame.Rect(x + 2, y + 2, x_length - 4, y_length - 4)
         pygame.draw.rect(self.window, color, rect)
 
-    def draw_transparent_box(self, x, y, width, height):
+    def draw_transparent_box(self, x, y, width, height, al):
         """
         Draws a transparent box, used to highlight locations
         :param x: Integer top-left x position
         :param y: Integer top-left y position
         :param width: Integer
         :param height: Integer
+        :param al: Integer to determine the alpha number
         """
         s = pygame.Surface((width, height), pygame.SRCALPHA)
-        s.fill((0, 0, 0, 180))
+        s.fill((0, 0, 0, al))
         self.window.blit(s, (x, y))
 
     def draw_text(self, text, size, color, x, y):
@@ -377,6 +378,11 @@ class Client:
                 movement_group.add(swap)
                 choices.append((swap.get_rect(), 'swap'))
 
+            if 'split' in possible_moves:
+                split = Images(770, 200 + (len(choices) * 60), 'images/movement/split_btn.png')
+                movement_group.add(split)
+                choices.append((split.get_rect(), 'split'))
+
             if 'pass' in possible_moves:
                 pss = Images(770, 200 + (len(choices) * 60), 'images/movement/pass_btn.png')
                 movement_group.add(pss)
@@ -406,6 +412,10 @@ class Client:
                             elif name == 'swap':
                                 # Need to let them pick who to swap with
                                 self.player_positions[self.color][piece_id] = self.pick_swap()
+                                selection_made = True
+
+                            elif name == 'split':
+                                self.player_positions[self.color] = self.handle_split(piece_id)
                                 selection_made = True
 
                             # Otherwise, update their end location based on what they selected
@@ -506,10 +516,13 @@ class Client:
 
         # Seven
         elif val == Value.Seven:
-            # TODO: Add split option in later
             end_pos = self.calculate_forward_position(start_pos, 7)
             if not end_pos == -1:
                 possible_moves['forward'] = end_pos
+
+            possible = self.check_split_possible()
+            if possible:
+                possible_moves['split'] = -1
 
         # Eight
         elif val == Value.Eight:
@@ -766,10 +779,9 @@ class Client:
         for position in possible_swaps:
             x = position // 16
             y = position % 16
-            print(position, x, y)
 
             self.draw_transparent_box(y * constants.BOARD_SQUARE, x * constants.BOARD_SQUARE,
-                                      constants.BOARD_SQUARE, constants.BOARD_SQUARE)
+                                      constants.BOARD_SQUARE, constants.BOARD_SQUARE, 100)
 
         title_group.draw(self.window)
         btn_group.draw(self.window)
@@ -865,6 +877,138 @@ class Client:
 
                     if btn.rect.collidepoint(pos):
                         confirm = True
+
+    def check_split_possible(self) -> bool:
+        results = []
+
+        # Find the largest amount of steps each piece can take.
+        for p in self.player_positions[self.color]:
+            if p == constants.STARTS[self.color] or p == constants.HOMES[self.color]:
+                results.append(0)
+            else:
+                flag = False
+                for i in range(6, -1, -1):
+                    if self.calculate_forward_position(p, i) != -1 and not flag:
+                        results.append(i)
+                        flag = True
+
+        # If any two add up to 7 or more, then return True
+        results.sort()
+
+        if results[2] + results[3] >= 7:
+            return True
+
+        return False
+
+    def draw_split_positions(self, ind, max_moves) -> int:
+        moves = []
+        self.draw_screen()
+
+        # Cancel button
+        group = pygame.sprite.Group()
+        cancel = Images(800, 180, 'images/movement/cancel.png')
+        group.add(cancel)
+        group.add(Images(775, 80, 'images/movement/split/end_pos.png'))
+        group.draw(self.window)
+
+        # Highlight all possible end locations for the piece
+        for i in range(1, max_moves+1):
+            end_position = self.calculate_forward_position(self.player_positions[self.color][ind], i)
+            if end_position != -1:
+                moves.append((i, end_position))
+                x = end_position // 16
+                y = end_position % 16
+
+                self.draw_transparent_box(y * constants.BOARD_SQUARE, x * constants.BOARD_SQUARE,
+                                          constants.BOARD_SQUARE, constants.BOARD_SQUARE, 100)
+
+        pygame.display.update()
+
+        # Wait for a selection on one of the squares, and return the end position
+        selected = False
+        while not selected:
+
+            events = pygame.event.get()
+            for ev in events:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+
+                    if cancel.rect.collidepoint((x, y)):
+                        return -1
+
+                    space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
+                    for move, end_position in moves:
+                        if space_id == end_position:
+                            return move
+
+    def handle_split(self, ind) -> [int]:
+        positions = self.player_positions[self.color]
+        group = pygame.sprite.Group()
+        max_moves = 7
+
+        group.add(Images(750, 75, 'images/movement/select_piece.png'))
+        group.draw(self.window)
+        pygame.display.flip()
+
+        # Calculate the first end position
+        first_move = self.draw_split_positions(ind, max_moves)
+        while first_move == -1:
+            # Draw the title
+            self.draw_screen()
+            group.draw(self.window)
+            pygame.display.update()
+
+            # Repick the piece
+            ind = self.select_piece()
+            first_move = self.draw_split_positions(ind, max_moves)
+
+        positions[ind] = self.calculate_forward_position(positions[ind], first_move)
+        self.check_occupied(positions[ind], ind)
+        positions[ind] = self.check_slide(positions[ind], ind)
+
+        max_moves -= first_move
+        if max_moves > 0:
+            # Change title to selecting another piece
+            group.empty()
+            group = self.split_group(group, first_move)
+            self.draw_screen()
+            group.draw(self.window)
+            pygame.display.flip()
+
+            # Calculate the second end position
+            second_piece = self.select_piece()
+            end_pos = self.calculate_forward_position(positions[second_piece], max_moves)
+
+            while end_pos == -1:
+                pygame.display.flip()
+                second_piece = self.select_piece()
+                end_pos = self.calculate_forward_position(positions[second_piece], max_moves)
+
+            group.empty()
+            self.check_occupied(positions[second_piece], second_piece)
+            positions[second_piece] = self.check_slide(end_pos, second_piece)
+
+        return positions
+
+    @staticmethod
+    def split_group(group, moves) -> pygame.sprite.Group:
+        group.add(Images(750, 75, 'images/movement/split/select_another.png'))
+
+        if moves == 1:
+            group.add(Images(780, 165, 'images/movement/split/6.png'))
+        elif moves == 2:
+            group.add(Images(780, 165, 'images/movement/split/5.png'))
+        elif moves == 3:
+            group.add(Images(780, 165, 'images/movement/split/4.png'))
+        elif moves == 4:
+            group.add(Images(780, 165, 'images/movement/split/3.png'))
+        elif moves == 5:
+            group.add(Images(780, 165, 'images/movement/split/2.png'))
+        elif moves == 6:
+            group.add(Images(780, 165, 'images/movement/split/1.png'))
+
+        group.add(Images(810, 165, 'images/movement/split/moves_left.png'))
+        return group
 
     def win_screen(self):
         winner = self.get_server_response('winner')
