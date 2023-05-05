@@ -3,6 +3,7 @@ import socket
 import pickle
 from _thread import *
 from game import Game
+from ast import literal_eval
 
 # Running on local host
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -63,8 +64,60 @@ def threaded_client(connect, p_id, game_id):
                             ready[game_id][p_id] = True
                             color = choice
 
+                    # Check if all players are ready to start
                     elif data == 'start':
                         reply = all(ready[game_id])
+
+                    # Returns the player object to the client
+                    elif data == 'my_player':
+                        reply = game.get_player(color)
+
+                    # Returns a dictionary of all players positions
+                    elif data == 'get_player_positions':
+                        reply = game.get_player_positions()
+
+                    # Update the player position
+                    elif data[:15] == 'update_position':
+                        position = literal_eval(data[16:])
+                        game.update_player_location(color, position)
+
+                    elif data[:20] == 'update_all_positions':
+                        positions = literal_eval(data[21:])
+                        game.update_all_locations(positions)
+
+                    # Ends the turn and moves to the next player
+                    elif data == 'end_turn':
+                        game.next_player()
+
+                    # Returns the players color of whose turn it is
+                    elif data == 'whos_turn':
+                        reply = game.get_turn()
+
+                    # Draw the next card from the deck
+                    elif data == 'draw_card':
+                        game.draw_card()
+
+                    # Get the card value of the current card
+                    elif data == 'get_card':
+                        reply = game.current_card()
+
+                    # Ends the players turn and moves to the next player
+                    elif data == 'end_turn':
+                        game.check_win()
+                        game.next_player()
+
+                    # Check if there is a winner
+                    elif data == 'check_won':
+                        game.check_win()
+                        reply = game.won
+
+                    # Get the winners name
+                    elif data == 'winner':
+                        reply = game.winner
+
+                    # If a player quits, this will remove them from the game
+                    elif data == 'quit':
+                        game.remove_player(color)
 
                     connect.sendall(pickle.dumps(reply))
             else:
@@ -92,13 +145,11 @@ while True:
     # If the game is full or already started, then move to a different game
     if g_id in games:
         if all(ready[g_id]) or len(ready[g_id]) == 4:
-            print('HERE')
             g_id += 1
 
     # If the game does not exist, make a new one
     if g_id not in games:
         print("Creating a new game...")
-        print(g_id)
         games[g_id] = Game()
         ready[g_id] = []
         id_count = 0
