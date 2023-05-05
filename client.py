@@ -879,6 +879,10 @@ class Client:
                         confirm = True
 
     def check_split_possible(self) -> bool:
+        """
+        Checks if there is at least 2 pieces that can be moved a combined 7 spaces
+        :return: Boolean
+        """
         results = []
 
         # Find the largest amount of steps each piece can take.
@@ -901,6 +905,12 @@ class Client:
         return False
 
     def draw_split_positions(self, ind, max_moves) -> int:
+        """
+        Highlights and lets the user select a position on the board for how many spaces they want to move
+        :param ind: Piece index
+        :param max_moves: Maximum number of moves they can make
+        :return: Integer, how many spaces the piece moved
+        """
         moves = []
         self.draw_screen()
 
@@ -942,6 +952,11 @@ class Client:
                             return move
 
     def handle_split(self, ind) -> [int]:
+        """
+        Main function for selecting the pieces and moves being made from the 7 split
+        :param ind: Index of the first selected piece
+        :return: Array of Integers, representing the new positions of the pieces
+        """
         positions = self.player_positions[self.color]
         group = pygame.sprite.Group()
         max_moves = 7
@@ -992,6 +1007,12 @@ class Client:
 
     @staticmethod
     def split_group(group, moves) -> pygame.sprite.Group:
+        """
+        Adds images to a sprite group to reflect how many moves are left
+        :param group: Sprite group
+        :param moves: Number of moves that were made
+        :return: Sprite group with the images added
+        """
         group.add(Images(750, 75, 'images/movement/split/select_another.png'))
 
         if moves == 1:
@@ -1011,6 +1032,9 @@ class Client:
         return group
 
     def win_screen(self):
+        """
+        Draws the end screen once someone has won the game
+        """
         winner = self.get_server_response('winner')
 
         title_group = pygame.sprite.Group()

@@ -22,6 +22,9 @@ class Board:
         self.set_up_board()
 
     def set_up_board(self):
+        """
+        Lays out the board as a long grid
+        """
         # Row 0
         self.board.append(Space(0, OccupiedType.NONE, ReservedType.NONE))
         self.board.append(Space(1, OccupiedType.NONE, ReservedType.GREEN_SLIDE))
@@ -311,6 +314,9 @@ class Board:
         self.board.append(Space(255, OccupiedType.NONE, ReservedType.NONE))
 
     def draw_board(self):
+        """
+        Draws the visual of the board
+        """
         for space_id, space in enumerate(self.board):
             row = space_id // 16
             col = space_id % 16

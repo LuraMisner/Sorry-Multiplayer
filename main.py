@@ -1,4 +1,3 @@
-
 import constants
 from client import Client
 import pygame
@@ -11,6 +10,7 @@ def main():
     pygame.display.set_caption("Sorry!")
     clock = pygame.time.Clock()
 
+    # Character selection
     client = Client(WIN)
     client.select_color()
 
@@ -18,6 +18,7 @@ def main():
     while run:
         WIN.fill((192, 192, 192))
 
+        # If the game is going, draw the board. Otherwise, draw the end screen
         if not client.get_server_response('check_won'):
             client.draw_screen()
             client.check_our_turn()
