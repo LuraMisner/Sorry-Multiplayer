@@ -1,2 +1,3 @@
 # Sorry-Multiplayer
-Creating a multiplayer version of the board game Sorry!
+
+Run server.py and then client.py, youll need to put your ip in the constants folder
