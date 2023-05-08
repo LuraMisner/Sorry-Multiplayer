@@ -26,25 +26,25 @@ class Client:
         """
         Initializes sprite groups and adds images to them
         """
-        title = Images(500, 175, 'images/start_screen/sorry_title.png')
+        title = Images(450, 160, 'images/start_screen/sorry_title.png')
         self.char_select_group.add(title)
 
-        selection = Images(375, 330, 'images/start_screen/selected.png')
+        selection = Images(337.5, 315, 'images/start_screen/selected.png')
         self.char_select_group.add(selection)
 
-        green = Images(215, 5, 'images/start_screen/green.png')
+        green = Images(185, 5, 'images/start_screen/green.png')
         self.char_select_group.add(green)
 
-        red = Images(875, 5, 'images/start_screen/red.png')
+        red = Images(820, 5, 'images/start_screen/red.png')
         self.char_select_group.add(red)
 
-        yellow = Images(215, 670, 'images/start_screen/yellow.png')
+        yellow = Images(185, 640, 'images/start_screen/yellow.png')
         self.char_select_group.add(yellow)
 
-        blue = Images(875, 670, 'images/start_screen/blue.png')
+        blue = Images(820, 640, 'images/start_screen/blue.png')
         self.char_select_group.add(blue)
 
-        confirm = Images(550, 400, 'images/start_screen/confirm.png')
+        confirm = Images(512.5, 385, 'images/start_screen/confirm.png')
         self.char_select_group.add(confirm)
 
         self.rules.add(Images(1000, 0, 'images/titles/rules.png'))
@@ -63,6 +63,39 @@ class Client:
         """
         self.player_positions = self.get_server_response('get_player_positions')
 
+    def draw_start(self):
+        self.draw_box(0, 0, constants.SELECT_X, constants.SELECT_Y, constants.GREEN, constants.BLACK)
+        self.draw_box(constants.SELECT_X, 0, constants.SELECT_X, constants.SELECT_Y, constants.RED, constants.BLACK)
+        self.draw_box(0, 360, constants.SELECT_X, constants.SELECT_Y, constants.YELLOW, constants.BLACK)
+        self.draw_box(constants.SELECT_X, 360, constants.SELECT_X,
+                      constants.SELECT_Y, constants.BLUE, constants.BLACK)
+
+        # If a color is no longer available, then grey it out
+        available_colors = self.get_server_response('available_colors')
+        if 'Green' not in available_colors:
+            self.draw_transparent_box(0, 0, constants.SELECT_X, constants.SELECT_Y, 180)
+        if 'Red' not in available_colors:
+            self.draw_transparent_box(constants.SELECT_X, 0, constants.SELECT_X, constants.SELECT_Y, 180)
+        if 'Yellow' not in available_colors:
+            self.draw_transparent_box(0, 360, constants.SELECT_X, constants.SELECT_Y, 180)
+        if 'Blue' not in available_colors:
+            self.draw_transparent_box(constants.SELECT_X, 360, constants.SELECT_X, constants.SELECT_Y, 180)
+
+        self.char_select_group.draw(self.window)
+
+    def draw_selection(self):
+        select_group = pygame.sprite.Group()
+        if self.color == 'Green':
+            select_group.add(Images(615, 311, 'images/start_screen/green_small.png'))
+        elif self.color == 'Red':
+            select_group.add(Images(608, 310, 'images/start_screen/red_small.png'))
+        elif self.color == 'Blue':
+            select_group.add(Images(613, 310, 'images/start_screen/blue_small.png'))
+        elif self.color == 'Yellow':
+            select_group.add(Images(618, 310, 'images/start_screen/yellow_small.png'))
+
+        select_group.draw(self.window)
+
     def select_color(self):
         """
         Draws the character select screen and lets the player select a color to be. Updates it on the server side
@@ -72,26 +105,11 @@ class Client:
         select_group = pygame.sprite.Group()
 
         while not selected:
-            # Draw out the colors
-            self.draw_box(0, 0, constants.SELECT_X, constants.SELECT_Y, constants.GREEN, constants.BLACK)
-            self.draw_box(650, 0, constants.SELECT_X, constants.SELECT_Y, constants.RED, constants.BLACK)
-            self.draw_box(0, 375, constants.SELECT_X, constants.SELECT_Y, constants.YELLOW, constants.BLACK)
-            self.draw_box(650, 375, constants.SELECT_X, constants.SELECT_Y, constants.BLUE, constants.BLACK)
-
-            # If a color is no longer available, then grey it out
-            available_colors = self.get_server_response('available_colors')
-            if 'Green' not in available_colors:
-                self.draw_transparent_box(0, 0, constants.SELECT_X, constants.SELECT_Y, 180)
-            if 'Red' not in available_colors:
-                self.draw_transparent_box(650, 0, constants.SELECT_X, constants.SELECT_Y, 180)
-            if 'Yellow' not in available_colors:
-                self.draw_transparent_box(0, 375, constants.SELECT_X, constants.SELECT_Y, 180)
-            if 'Blue' not in available_colors:
-                self.draw_transparent_box(650, 375, constants.SELECT_X, constants.SELECT_Y, 180)
+            self.draw_start()
 
             # Display the number ready
             rdy = self.get_server_response('num_ready')
-            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 575, 450)
+            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 537.5, 435)
 
             # Look for a selection
             ev = pygame.event.get()
@@ -99,25 +117,25 @@ class Client:
                 if event.type == pygame.MOUSEBUTTONUP:
                     x, y = pygame.mouse.get_pos()
 
-                    if 550 <= x <= 550 + constants.CONFIRM_X and 400 <= y <= 400 + constants.CONFIRM_Y:
+                    if 550 <= x <= 550 + constants.CONFIRM_X and 385 <= y <= 385 + constants.CONFIRM_Y:
                         if choice:
                             selected = True
                     elif 0 <= x <= constants.SELECT_X and 0 <= y <= constants.SELECT_Y:
                         choice = 'Green'
                         select_group.empty()
-                        select_group.add(Images(650, 326, 'images/start_screen/green_small.png'))
+                        select_group.add(Images(615, 311, 'images/start_screen/green_small.png'))
                     elif 650 <= x <= 650 + constants.SELECT_X and 0 <= y <= constants.SELECT_Y:
                         choice = 'Red'
                         select_group.empty()
-                        select_group.add(Images(640, 325, 'images/start_screen/red_small.png'))
-                    elif 0 <= x <= constants.SELECT_X and 375 <= y <= 375 + constants.SELECT_Y:
+                        select_group.add(Images(608, 310, 'images/start_screen/red_small.png'))
+                    elif 0 <= x <= constants.SELECT_X and 360 <= y <= 360 + constants.SELECT_Y:
                         choice = 'Yellow'
                         select_group.empty()
-                        select_group.add(Images(655, 325, 'images/start_screen/yellow_small.png'))
-                    elif 650 <= x <= 650 + constants.SELECT_X and 375 <= y <= 375 + constants.SELECT_Y:
+                        select_group.add(Images(618, 310, 'images/start_screen/yellow_small.png'))
+                    elif 650 <= x <= 650 + constants.SELECT_X and 360 <= y <= 360 + constants.SELECT_Y:
                         choice = 'Blue'
                         select_group.empty()
-                        select_group.add(Images(650, 325, 'images/start_screen/blue_small.png'))
+                        select_group.add(Images(613, 310, 'images/start_screen/blue_small.png'))
 
             # Wait for a selection
             self.char_select_group.draw(self.window)
@@ -140,12 +158,11 @@ class Client:
 
         while not start:
             rdy = self.get_server_response('num_ready')
+            self.draw_start()
+            self.draw_selection()
 
-            self.draw_box(1, 450, constants.SELECT_X-3, 20, constants.YELLOW, constants.YELLOW)
-            self.draw_box(652, 450, 100, 20, constants.BLUE, constants.BLUE)
-
-            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 575, 450)
-            pygame.display.flip()
+            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 537.5, 435)
+            pygame.display.update()
 
             start = self.get_server_response('start')
 
@@ -411,7 +428,20 @@ class Client:
 
                             elif name == 'swap':
                                 # Need to let them pick who to swap with
+                                og_pos = self.player_positions[self.color][piece_id]
                                 self.player_positions[self.color][piece_id] = self.pick_swap()
+
+                                if val == Value.Eleven:
+                                    # If it is an eleven, put the other player at the original position
+                                    target = self.player_positions[self.color][piece_id]
+                                    for key in self.player_positions.keys():
+                                        if key != self.color:
+                                            if target in self.player_positions[key]:
+                                                ind = self.player_positions[key].index(target)
+                                                self.player_positions[key][ind] = og_pos
+
+                                    self.get_server_response(f'update_all_positions {self.player_positions}')
+
                                 selection_made = True
 
                             elif name == 'split':
