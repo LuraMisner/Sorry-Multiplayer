@@ -14,40 +14,26 @@ class Client:
         self.window = win
         self.board = Board(self.window)
         self.network = Network()
+        self.clock = pygame.time.Clock()
 
         self.color = None
         self.player_positions = {}
+        self.pieces = []
 
         self.char_select_group = pygame.sprite.Group()
-        self.rules = pygame.sprite.Group()
+        self.your_turn = pygame.sprite.Group()
         self.initialize_image_groups()
 
     def initialize_image_groups(self):
         """
         Initializes sprite groups and adds images to them
         """
-        title = Images(450, 160, 'images/start_screen/sorry_title.png')
-        self.char_select_group.add(title)
+        # Start screen
+        self.char_select_group.add(Images(223, -50, 'images/start_screen/sorry_title.png'))
+        self.char_select_group.add(Images(285, 285, 'images/start_screen/pawn2.png'))
 
-        selection = Images(337.5, 315, 'images/start_screen/selected.png')
-        self.char_select_group.add(selection)
-
-        green = Images(185, 5, 'images/start_screen/green.png')
-        self.char_select_group.add(green)
-
-        red = Images(820, 5, 'images/start_screen/red.png')
-        self.char_select_group.add(red)
-
-        yellow = Images(185, 640, 'images/start_screen/yellow.png')
-        self.char_select_group.add(yellow)
-
-        blue = Images(820, 640, 'images/start_screen/blue.png')
-        self.char_select_group.add(blue)
-
-        confirm = Images(512.5, 385, 'images/start_screen/confirm.png')
-        self.char_select_group.add(confirm)
-
-        self.rules.add(Images(1000, 0, 'images/titles/rules.png'))
+        # Turn specific
+        self.your_turn.add(Images(25, 205, 'images/titles/your_turn.png'))
 
     def get_server_response(self, query):
         """
@@ -63,38 +49,76 @@ class Client:
         """
         self.player_positions = self.get_server_response('get_player_positions')
 
-    def draw_start(self):
-        self.draw_box(0, 0, constants.SELECT_X, constants.SELECT_Y, constants.GREEN, constants.BLACK)
-        self.draw_box(constants.SELECT_X, 0, constants.SELECT_X, constants.SELECT_Y, constants.RED, constants.BLACK)
-        self.draw_box(0, 360, constants.SELECT_X, constants.SELECT_Y, constants.YELLOW, constants.BLACK)
-        self.draw_box(constants.SELECT_X, 360, constants.SELECT_X,
-                      constants.SELECT_Y, constants.BLUE, constants.BLACK)
+    def draw_start(self, color):
+        """
+        Draws out the start screen
+        :param color: String representing color selected
+        """
+        # Outline the window
+        pygame.draw.line(self.window, constants.BLACK, (0, 0), (0, 770), 6)
+        pygame.draw.line(self.window, constants.BLACK, (0, 0), (770, 0), 6)
+        pygame.draw.line(self.window, constants.BLACK, (770, 0), (770, 770), 6)
+        pygame.draw.line(self.window, constants.BLACK, (0, 770), (770, 770), 6)
+
+        # Green
+        rect = pygame.Rect(6, 6, constants.SELECT_X - 6, constants.SELECT_Y - 6)
+        pygame.draw.rect(self.window, constants.GREEN, rect)
+
+        # Red
+        rect = (constants.SELECT_X, 6, constants.SELECT_X - 6, constants.SELECT_Y - 6)
+        pygame.draw.rect(self.window, constants.RED, rect)
+
+        # Yellow
+        rect = pygame.Rect(6, constants.SELECT_Y, constants.SELECT_X - 6, constants.SELECT_Y - 6)
+        pygame.draw.rect(self.window, constants.YELLOW, rect)
+
+        # Blue
+        rect = (constants.SELECT_X, constants.SELECT_Y, constants.SELECT_X - 6, constants.SELECT_Y - 6)
+        pygame.draw.rect(self.window, constants.BLUE, rect)
+
+        selected = pygame.sprite.Group()
 
         # If a color is no longer available, then grey it out
         available_colors = self.get_server_response('available_colors')
         if 'Green' not in available_colors:
             self.draw_transparent_box(0, 0, constants.SELECT_X, constants.SELECT_Y, 180)
+        else:
+            selected.add(Images(143, 143, 'images/start_screen/click.png'))
+
         if 'Red' not in available_colors:
             self.draw_transparent_box(constants.SELECT_X, 0, constants.SELECT_X, constants.SELECT_Y, 180)
+        else:
+            selected.add(Images(527, 143, 'images/start_screen/click.png'))
+
         if 'Yellow' not in available_colors:
-            self.draw_transparent_box(0, 360, constants.SELECT_X, constants.SELECT_Y, 180)
+            self.draw_transparent_box(0, constants.SELECT_Y, constants.SELECT_X, constants.SELECT_Y, 180)
+        else:
+            selected.add(Images(143, 527, 'images/start_screen/click.png'))
+
         if 'Blue' not in available_colors:
-            self.draw_transparent_box(constants.SELECT_X, 360, constants.SELECT_X, constants.SELECT_Y, 180)
+            self.draw_transparent_box(constants.SELECT_X, constants.SELECT_Y,
+                                      constants.SELECT_X, constants.SELECT_Y, 180)
+        else:
+            selected.add(Images(527, 527, 'images/start_screen/click.png'))
+
+        # Visual for the color selected
+        if color == 'Green':
+            self.draw_box(285, 285, 200, 200, 2, constants.GREEN, constants.BLACK)
+            selected.add(Images(285, 288, 'images/start_screen/green_xs.png'))
+        elif color == 'Blue':
+            self.draw_box(285, 285, 200, 200, 2, constants.BLUE, constants.BLACK)
+            selected.add(Images(285, 288, 'images/start_screen/blue_xs.png'))
+        elif color == 'Red':
+            self.draw_box(285, 285, 200, 200, 2, constants.RED, constants.BLACK)
+            selected.add(Images(285, 288, 'images/start_screen/red_xs.png'))
+        elif color == 'Yellow':
+            self.draw_box(285, 285, 200, 200, 2, constants.YELLOW, constants.BLACK)
+            selected.add(Images(285, 288, 'images/start_screen/yellow_xs.png'))
+        else:
+            self.draw_box(285, 285, 200, 200, 2, constants.WHITE, constants.BLACK)
 
         self.char_select_group.draw(self.window)
-
-    def draw_selection(self):
-        select_group = pygame.sprite.Group()
-        if self.color == 'Green':
-            select_group.add(Images(615, 311, 'images/start_screen/green_small.png'))
-        elif self.color == 'Red':
-            select_group.add(Images(608, 310, 'images/start_screen/red_small.png'))
-        elif self.color == 'Blue':
-            select_group.add(Images(613, 310, 'images/start_screen/blue_small.png'))
-        elif self.color == 'Yellow':
-            select_group.add(Images(618, 310, 'images/start_screen/yellow_small.png'))
-
-        select_group.draw(self.window)
+        selected.draw(self.window)
 
     def select_color(self):
         """
@@ -102,14 +126,16 @@ class Client:
         """
         selected = False
         choice = None
-        select_group = pygame.sprite.Group()
+
+        conf_group = pygame.sprite.Group()
+        conf_group.add(Images(285, 530, 'images/start_screen/confirm.png'))
 
         while not selected:
-            self.draw_start()
+            self.draw_start(choice)
 
             # Display the number ready
             rdy = self.get_server_response('num_ready')
-            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 537.5, 435)
+            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 315, 500)
 
             # Look for a selection
             ev = pygame.event.get()
@@ -117,30 +143,24 @@ class Client:
                 if event.type == pygame.MOUSEBUTTONUP:
                     x, y = pygame.mouse.get_pos()
 
-                    if 550 <= x <= 550 + constants.CONFIRM_X and 385 <= y <= 385 + constants.CONFIRM_Y:
+                    if 285 <= x <= 285 + constants.CONFIRM_X and 530 <= y <= 530 + constants.CONFIRM_Y:
                         if choice:
                             selected = True
                     elif 0 <= x <= constants.SELECT_X and 0 <= y <= constants.SELECT_Y:
                         choice = 'Green'
-                        select_group.empty()
-                        select_group.add(Images(615, 311, 'images/start_screen/green_small.png'))
-                    elif 650 <= x <= 650 + constants.SELECT_X and 0 <= y <= constants.SELECT_Y:
+                    elif 385 <= x <= 385 + constants.SELECT_X and 0 <= y <= constants.SELECT_Y:
                         choice = 'Red'
-                        select_group.empty()
-                        select_group.add(Images(608, 310, 'images/start_screen/red_small.png'))
-                    elif 0 <= x <= constants.SELECT_X and 360 <= y <= 360 + constants.SELECT_Y:
+                    elif 0 <= x <= constants.SELECT_X and 385 <= y <= 385 + constants.SELECT_Y:
                         choice = 'Yellow'
-                        select_group.empty()
-                        select_group.add(Images(618, 310, 'images/start_screen/yellow_small.png'))
-                    elif 650 <= x <= 650 + constants.SELECT_X and 360 <= y <= 360 + constants.SELECT_Y:
+                    elif 385 <= x <= 385 + constants.SELECT_X and 385 <= y <= 385 + constants.SELECT_Y:
                         choice = 'Blue'
-                        select_group.empty()
-                        select_group.add(Images(613, 310, 'images/start_screen/blue_small.png'))
 
             # Wait for a selection
-            self.char_select_group.draw(self.window)
-            select_group.draw(self.window)
+            if choice:
+                conf_group.draw(self.window)
+
             pygame.display.update()
+            self.clock.tick(60)
 
         # Verify the selection with the server, if not verified recall the function
         verified = self.get_server_response(f'verify_choice {choice}')
@@ -158,30 +178,33 @@ class Client:
 
         while not start:
             rdy = self.get_server_response('num_ready')
-            self.draw_start()
-            self.draw_selection()
+            self.draw_start(self.color)
 
-            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 537.5, 435)
+            self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 315, 500)
+
             pygame.display.update()
+            self.clock.tick(60)
 
             start = self.get_server_response('start')
 
         self.update_positions()
 
-    def draw_box(self, x, y, x_length, y_length, color, outline):
+    def draw_box(self, x, y, x_length, y_length, outline_width, color, outline):
         """
         Draws a box on the window
         :param x: Integer, x position of top left corner
         :param y: Integer, y position of top left corner
         :param x_length: Integer, length
         :param y_length: Integer, height
+        :param outline_width: Integer, width of outline
         :param color: (int, int, int), color of box
         :param outline: (int, int, int), color of outline
         """
 
         background = pygame.Rect(x, y, x_length, y_length)
         pygame.draw.rect(self.window, outline, background)
-        rect = pygame.Rect(x + 2, y + 2, x_length - 4, y_length - 4)
+        rect = pygame.Rect(x + outline_width, y + outline_width,
+                           x_length - (2 * outline_width), y_length - (2 * outline_width))
         pygame.draw.rect(self.window, color, rect)
 
     def draw_transparent_box(self, x, y, width, height, al):
@@ -214,6 +237,7 @@ class Client:
         Draws all player pieces on the board
         """
         self.update_positions()
+        self.pieces = []
 
         for player in self.player_positions.keys():
             for ind, piece in enumerate(self.player_positions[player]):
@@ -227,17 +251,25 @@ class Client:
                 else:
                     color = constants.BLUE
 
-                x = constants.BOARD_SQUARE * (piece // 16)
-                y = constants.BOARD_SQUARE * (piece % 16)
-                center_y = x + (constants.BOARD_SQUARE // 2)
-                center_x = y + (constants.BOARD_SQUARE // 2)
+                if self.player_positions[player][ind] == constants.STARTS[player]:
+                    x, y = constants.START_DISPLAYS[player][ind]
+                else:
+                    y = constants.BOARD_SQUARE * (piece // 16)
+                    x = constants.BOARD_SQUARE * (piece % 16)
 
-                pygame.draw.circle(self.window, constants.BLACK, (center_x, center_y),
-                                   (constants.BOARD_SQUARE // 2.5) + 2.5)
-                pygame.draw.circle(self.window, color, (center_x, center_y), constants.BOARD_SQUARE // 2.5)
+                center_y = y + (constants.BOARD_SQUARE // 2)
+                center_x = x + (constants.BOARD_SQUARE // 2)
 
-                # label piece
-                self.draw_text(str(ind + 1), 30, constants.BLACK, center_x - 7, x + 13)
+                if self.player_positions[player][ind] == constants.STARTS[player]:
+                    circ = pygame.draw.circle(self.window, constants.WHITE, (center_x, center_y),
+                                              ((constants.BOARD_SQUARE - 2) // 2.5) + 2.5)
+                else:
+                    circ = pygame.draw.circle(self.window, constants.BLACK, (center_x, center_y),
+                                              ((constants.BOARD_SQUARE-2) // 2.5) + 2.5)
+                pygame.draw.circle(self.window, color, (center_x, center_y), (constants.BOARD_SQUARE-2) // 2.5)
+
+                if self.color == player:
+                    self.pieces.append(circ)
 
     def draw_screen(self):
         """
@@ -247,8 +279,6 @@ class Client:
         self.board.draw_board()
         self.draw_players()
         self.draw_card()
-        self.draw_turn()
-        self.rules.draw(self.window)
         pygame.display.update()
 
     def draw_card(self):
@@ -261,56 +291,29 @@ class Client:
             val = card.get_value()
 
             if val == Value.One:
-                card_group.add(Images(275, 225, 'images/cards/one.png'))
+                card_group.add(Images(315, 245, 'images/cards/one.png'))
             elif val == Value.Two:
-                card_group.add(Images(275, 225, 'images/cards/two.png'))
+                card_group.add(Images(315, 245, 'images/cards/two.png'))
             elif val == Value.Three:
-                card_group.add(Images(275, 225, 'images/cards/three.png'))
+                card_group.add(Images(315, 245, 'images/cards/three.png'))
             elif val == Value.Four:
-                card_group.add(Images(275, 225, 'images/cards/four.png'))
+                card_group.add(Images(315, 245, 'images/cards/four.png'))
             elif val == Value.Five:
-                card_group.add(Images(275, 225, 'images/cards/five.png'))
+                card_group.add(Images(315, 245, 'images/cards/five.png'))
             elif val == Value.Seven:
-                card_group.add(Images(275, 225, 'images/cards/seven.png'))
+                card_group.add(Images(315, 245, 'images/cards/seven.png'))
             elif val == Value.Eight:
-                card_group.add(Images(275, 225, 'images/cards/eight.png'))
+                card_group.add(Images(315, 245, 'images/cards/eight.png'))
             elif val == Value.Ten:
-                card_group.add(Images(275, 225, 'images/cards/ten.png'))
+                card_group.add(Images(315, 245, 'images/cards/ten.png'))
             elif val == Value.Eleven:
-                card_group.add(Images(275, 225, 'images/cards/eleven.png'))
+                card_group.add(Images(315, 245, 'images/cards/eleven.png'))
             elif val == Value.Twelve:
-                card_group.add(Images(275, 225, 'images/cards/twelve.png'))
+                card_group.add(Images(315, 245, 'images/cards/twelve.png'))
             else:
-                card_group.add(Images(275, 225, 'images/cards/sorry.png'))
+                card_group.add(Images(315, 245, 'images/cards/sorry.png'))
 
             card_group.draw(self.window)
-
-    def draw_turn(self):
-        """
-        Draws title to represent whose turn it is
-        """
-        color = self.get_server_response('whos_turn')
-        title_group = pygame.sprite.Group()
-
-        if color == self.color:
-            if color == 'Green':
-                title_group.add(Images(722, 10, 'images/titles/you_green.png'))
-            elif color == 'Blue':
-                title_group.add(Images(722, 10, 'images/titles/you_blue.png'))
-            elif color == 'Red':
-                title_group.add(Images(722, 10, 'images/titles/you_red.png'))
-            else:
-                title_group.add(Images(722, 10, 'images/titles/you_yellow.png'))
-        elif color == 'Green':
-            title_group.add(Images(722, 10, 'images/titles/green.png'))
-        elif color == 'Red':
-            title_group.add(Images(722, 10, 'images/titles/red.png'))
-        elif color == 'Blue':
-            title_group.add(Images(722, 10, 'images/titles/blue.png'))
-        else:
-            title_group.add(Images(722, 10, 'images/titles/yellow.png'))
-
-        title_group.draw(self.window)
 
     def check_our_turn(self):
         """
@@ -325,7 +328,35 @@ class Client:
         Updates player positions, draws the card for the players turn and then sends them to handle the movement
         """
         self.update_positions()
-        self.get_server_response('draw_card')
+
+        # Let the user draw a card
+        self.your_turn.draw(self.window)
+        pygame.display.flip()
+        time.sleep(1.75)
+
+        # Draw a card button
+        draw_btn = pygame.sprite.Group()
+        draw = Images(315, 500, 'images/titles/draw.png')
+        draw_btn.add(draw)
+
+        self.draw_screen()
+        draw_btn.draw(self.window)
+        pygame.display.flip()
+
+        card_drawn = False
+        while not card_drawn:
+
+            event = pygame.event.get()
+            for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    pos = pygame.mouse.get_pos()
+                    if draw.rect.collidepoint(pos):
+                        self.get_server_response('draw_card')
+                        card_drawn = True
+
+            pygame.display.update()
+            self.clock.tick(60)
+
         self.handle_movement(self.get_server_response('get_card'))
 
     def handle_movement(self, card):
@@ -333,17 +364,11 @@ class Client:
         Handles the user selection a piece and a move to make, and updates it server side
         :param card: Card object of the card drawn
         """
-
-        # Select a piece header
+        # Refresh the screen
         self.draw_screen()
-        movement_group = pygame.sprite.Group()
-        movement_group.add(Images(750, 75, 'images/movement/select_piece.png'))
-        movement_group.draw(self.window)
-        pygame.display.update()
 
-        # Check if there are possible moves
-        possible = self.check_possible(self.player_positions[self.color], card)
-        if not possible:
+        possible_moves = self.check_possible(self.player_positions[self.color], card)
+        if possible_moves == {0: {}, 1: {}, 2: {}, 3: {}}:
             # Do something here to show there is no moves
             self.no_possible_moves()
             self.get_server_response('end_turn')
@@ -351,110 +376,79 @@ class Client:
 
         # Calculate valid moves
         val = card.get_value()
+        self.draw_click_icon(possible_moves)
         piece_id = self.select_piece()
-        possible_moves = self.calculate_end_positions(self.player_positions[self.color][piece_id], card)
 
         # Let the user select from the possible choices
         selection_made = False
         while not selection_made:
-            # Title
-            self.draw_box(720, 75, 280, 280, constants.BACKGROUND, constants.BACKGROUND)
-            movement_group.empty()
-            movement_group.add(Images(750, 75, 'images/movement/you_selected.png'))
-            movement_group.add(Images(790, 110, 'images/movement/piece.png'))
+            # If there is only one possible move, then perform that.
+            if len(possible_moves[piece_id]) == 1:
+                for key in possible_moves[piece_id].keys():
+                    if possible_moves[piece_id][key] != -1:
+                        self.player_positions[self.color][piece_id] = possible_moves[piece_id][key]
+                        selection_made = True
 
-            # Draw piece number
-            if piece_id == 0:
-                movement_group.add(Images(860, 110, 'images/movement/one.png'))
-            elif piece_id == 1:
-                movement_group.add(Images(860, 110, 'images/movement/two.png'))
-            elif piece_id == 2:
-                movement_group.add(Images(860, 110, 'images/movement/three.png'))
+                    else:
+                        if key == 'split':
+                            self.player_positions[self.color] = self.handle_split(piece_id)
+
+                        elif key == 'swap':
+                            # Need to let them pick who to swap with
+                            og_pos = self.player_positions[self.color][piece_id]
+                            self.player_positions[self.color][piece_id] = self.pick_swap()
+
+                            if val == Value.Eleven:
+                                # If it is an eleven, put the other player at the original position
+                                target = self.player_positions[self.color][piece_id]
+                                for k in self.player_positions.keys():
+                                    if k != self.color:
+                                        if target in self.player_positions[k]:
+                                            ind = self.player_positions[k].index(target)
+                                            self.player_positions[k][ind] = og_pos
+
+                                self.get_server_response(f'update_all_positions {self.player_positions}')
+                        selection_made = True
             else:
-                movement_group.add(Images(860, 110, 'images/movement/four.png'))
+                # 7s, 10s, and 11s can all fall into here.
+                if 'split' in possible_moves[piece_id]:
+                    # Only need to call the split function, because they can move it 7 spaces or split it.
+                    self.player_positions[self.color] = self.handle_split(piece_id)
+                else:
+                    end_pos = set()
+                    swap_flag = False
 
-            choices = []
+                    for key in possible_moves[piece_id].keys():
+                        if possible_moves[piece_id][key] == -1:
+                            # Swap, splits already been handled.
+                            if key == 'swap':
+                                end_pos.update(self.calculate_swap_position())
+                                swap_flag = True
+                        else:
+                            end_pos.add(possible_moves[piece_id][key])
 
-            # Possible movement options
-            if 'start' in possible_moves:
-                start = Images(770, 200 + (len(choices) * 60), 'images/movement/move_start_btn.png')
-                movement_group.add(start)
-                choices.append((start.get_rect(), 'start'))
-            if 'forward' in possible_moves:
-                forward = Images(770, 200 + (len(choices) * 60), 'images/movement/forward_btn.png')
-                movement_group.add(forward)
-                choices.append((forward.get_rect(), 'forward'))
+                    # Highlights the possible positions and allows the user to select one
+                    end = self.select_end_position(end_pos)
 
-            if 'backward' in possible_moves:
-                backward = Images(770, 200 + (len(choices) * 60), 'images/movement/backward_btn.png')
-                movement_group.add(backward)
-                choices.append((backward.get_rect(), 'backward'))
+                    if swap_flag:
+                        if end in self.calculate_swap_position():
+                            # Handle the situation where eleven spaces forward has another player.
+                            # Prioritizes sending another player home
+                            if 'forward' not in possible_moves[piece_id] or \
+                                    possible_moves[piece_id]['forward'] != end:
+                                # Eleven card, swap places with the other piece
+                                for k in self.player_positions.keys():
+                                    if k != self.color:
+                                        if end in self.player_positions[k]:
+                                            ind = self.player_positions[k].index(end)
+                                            self.player_positions[k][ind] = self.player_positions[self.color][piece_id]
 
-            if 'swap' in possible_moves:
-                swap = Images(770, 200 + (len(choices) * 60), 'images/movement/swap_btn.png')
-                movement_group.add(swap)
-                choices.append((swap.get_rect(), 'swap'))
+                    self.player_positions[self.color][piece_id] = end
 
-            if 'split' in possible_moves:
-                split = Images(770, 200 + (len(choices) * 60), 'images/movement/split_btn.png')
-                movement_group.add(split)
-                choices.append((split.get_rect(), 'split'))
-
-            if 'pass' in possible_moves:
-                pss = Images(770, 200 + (len(choices) * 60), 'images/movement/pass_btn.png')
-                movement_group.add(pss)
-                choices.append((pss.get_rect(), 'pass'))
-
-            cancel = Images(770, 200 + (len(choices) * 60), 'images/movement/cancel.png')
-            movement_group.add(cancel)
-            choices.append((cancel.get_rect(), 'cancel'))
-            movement_group.draw(self.window)
-
-            # Check for clicks
-            ev = pygame.event.get()
-            for event in ev:
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = pygame.mouse.get_pos()
-
-                    for rct, name in choices:
-                        if rct.collidepoint(pos):
-                            # If they canceled the move, allow them to reselect a piece and go through the process again
-                            if name == 'cancel':
-                                return self.handle_movement(card)
-
-                            # End the turn, no possible moves
-                            elif name == 'pass':
-                                return
-
-                            elif name == 'swap':
-                                # Need to let them pick who to swap with
-                                og_pos = self.player_positions[self.color][piece_id]
-                                self.player_positions[self.color][piece_id] = self.pick_swap()
-
-                                if val == Value.Eleven:
-                                    # If it is an eleven, put the other player at the original position
-                                    target = self.player_positions[self.color][piece_id]
-                                    for key in self.player_positions.keys():
-                                        if key != self.color:
-                                            if target in self.player_positions[key]:
-                                                ind = self.player_positions[key].index(target)
-                                                self.player_positions[key][ind] = og_pos
-
-                                    self.get_server_response(f'update_all_positions {self.player_positions}')
-
-                                selection_made = True
-
-                            elif name == 'split':
-                                self.player_positions[self.color] = self.handle_split(piece_id)
-                                selection_made = True
-
-                            # Otherwise, update their end location based on what they selected
-                            else:
-                                if name in possible_moves:
-                                    self.player_positions[self.color][piece_id] = possible_moves[name]
-                                    selection_made = True
+                selection_made = True
 
             pygame.display.update()
+            self.clock.tick(60)
 
         # Update movement on server side
         self.get_server_response(f'update_position {self.player_positions[self.color]}')
@@ -475,6 +469,17 @@ class Client:
         # End the turn
         self.get_server_response('end_turn')
 
+    def draw_click_icon(self, options):
+        click_group = pygame.sprite.Group()
+        for ind, p in enumerate(self.pieces):
+            if options[ind] != {}:
+                # Draw a click icon
+                x, y = p.x, p.y
+                click_group.add(Images(x+4, y+4, 'images/titles/click_xs_2.png'))
+
+        click_group.draw(self.window)
+        pygame.display.update()
+
     def select_piece(self) -> int:
         """
         Listens for a mouse down click on a board square that contains one of the players pieces
@@ -487,16 +492,13 @@ class Client:
             ev = pygame.event.get()
             for event in ev:
                 if event.type == pygame.MOUSEBUTTONUP:
-                    x, y = pygame.mouse.get_pos()
+                    pos = pygame.mouse.get_pos()
 
-                    # Check if the click was on a square containing a piece
-                    for ind, space_id in enumerate(self.player_positions[self.color]):
-                        row = space_id // 16
-                        col = space_id % 16
+                    for i in range(len(self.pieces)):
+                        if self.pieces[i].collidepoint(pos):
+                            return i
 
-                        if col * constants.BOARD_SQUARE <= x <= (col + 1) * constants.BOARD_SQUARE and \
-                           row * constants.BOARD_SQUARE <= y <= (row + 1) * constants.BOARD_SQUARE:
-                            return ind
+            self.clock.tick(60)
 
     def calculate_end_positions(self, start_pos, card) -> {str: int}:
         """
@@ -551,7 +553,7 @@ class Client:
                 possible_moves['forward'] = end_pos
 
             possible = self.check_split_possible()
-            if possible:
+            if possible and start_pos != constants.STARTS[self.color] and start_pos != constants.HOMES[self.color]:
                 possible_moves['split'] = -1
 
         # Eight
@@ -765,22 +767,18 @@ class Client:
 
         return end_positions
 
-    def check_possible(self, positions, card) -> bool:
+    def check_possible(self, positions, card) -> {int: {str: int}}:
         """
         Checks how many pieces there are movements for
         :param positions: Array of integers representing current piece locations
         :param card: Card object that was drawn
         :return: Boolean representing if there is at least one possible move
         """
-        count = 0
-        for p in positions:
-            possible = self.calculate_end_positions(p, card)
-            if not possible:
-                count += 1
+        result = {}
+        for ind, p in enumerate(positions):
+            result[ind] = self.calculate_end_positions(p, card)
 
-        if count == 4:
-            return False
-        return True
+        return result
 
     def pick_swap(self) -> int:
         """
@@ -789,14 +787,6 @@ class Client:
         """
         self.draw_screen()
         possible_swaps = self.calculate_swap_position()
-
-        title_group = pygame.sprite.Group()
-        title_group.add(Images(750, 80, 'images/movement/select_piece.png'))
-        title_group.add(Images(750, 110, 'images/movement/swap.png'))
-
-        btn_group = pygame.sprite.Group()
-        confirm = Images(770, 200, 'images/movement/confirm.png')
-        btn_group.add(confirm)
 
         # Only one solution
         if len(possible_swaps) == 1:
@@ -813,12 +803,9 @@ class Client:
             self.draw_transparent_box(y * constants.BOARD_SQUARE, x * constants.BOARD_SQUARE,
                                       constants.BOARD_SQUARE, constants.BOARD_SQUARE, 100)
 
-        title_group.draw(self.window)
-        btn_group.draw(self.window)
         pygame.display.update()
 
         while not selection:
-
             events = pygame.event.get()
             for ev in events:
                 if ev.type == pygame.MOUSEBUTTONDOWN:
@@ -827,91 +814,28 @@ class Client:
                     space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
                     if space_id in possible_swaps:
                         selected = space_id
-
-                        # Update the title
-                        self.draw_box(720, 50, 280, 400, constants.BACKGROUND, constants.BACKGROUND)
-                        title_group.empty()
-                        title_group = self.selection_title(title_group, space_id)
-                        title_group.draw(self.window)
-                        btn_group.draw(self.window)
-
-                    if confirm.rect.collidepoint((x, y)) and selected:
                         selection = True
 
             pygame.display.update()
+            self.clock.tick(60)
 
         return selected
 
-    def selection_title(self, sprite_group, selected_id) -> pygame.sprite.Group:
-        """
-        Updates the title images displayed based on what the player selected
-        :param sprite_group: Sprite group that images are added to
-        :param selected_id: Integer, id of the space selected
-        :return: Sprite group populated with proper images
-        """
-        color = None
-        ind = 0
-
-        # Find the player color and position
-        for key in self.player_positions.keys():
-            if selected_id in self.player_positions[key]:
-                color = key
-                ind = self.player_positions[key].index(selected_id)
-
-        # You have selected
-        sprite_group.add(Images(730, 60, 'images/titles/you_selected.png'))
-
-        # Add the color title
-        if color == 'Red':
-            sprite_group.add(Images(780, 100, 'images/movement/red_xs.png'))
-        elif color == 'Blue':
-            sprite_group.add(Images(780, 100, 'images/movement/blue_xs.png'))
-        elif color == 'Green':
-            sprite_group.add(Images(780, 100, 'images/movement/green_xs.png'))
-        else:
-            sprite_group.add(Images(780, 100, 'images/movement/yellow_xs.png'))
-
-        # Add the piece number
-        if ind == 0:
-            sprite_group.add(Images(880, 105, 'images/movement/one.png'))
-        elif ind == 1:
-            sprite_group.add(Images(880, 105, 'images/movement/two.png'))
-        elif ind == 2:
-            sprite_group.add(Images(880, 105, 'images/movement/three.png'))
-        else:
-            sprite_group.add(Images(880, 105,  'images/movement/four.png'))
-
-        return sprite_group
-
     def no_possible_moves(self):
         """
-        Adds title and confirm button to tell the user there is no possible moves for that turn
+        Displays a notice that there is no possible moves for the user
         """
-
-        # Draw screen
         self.draw_screen()
         title_group = pygame.sprite.Group()
-        title_group.add(Images(740, 70, 'images/movement/no_moves.png'))
-        btn = Images(770, 200, 'images/movement/confirm.png')
-        title_group.add(btn)
+        title_group.add(Images(25, 205, 'images/titles/no_moves.png'))
         title_group.draw(self.window)
         pygame.display.update()
+        time.sleep(1.75)
 
-        # Wait for them to hit the button
-        confirm = False
-        while not confirm:
-            events = pygame.event.get()
-            for ev in events:
-                if ev.type == pygame.MOUSEBUTTONDOWN:
-                    pos = pygame.mouse.get_pos()
-
-                    if btn.rect.collidepoint(pos):
-                        confirm = True
-
-    def check_split_possible(self) -> bool:
+    def check_forward(self) -> [int]:
         """
-        Checks if there is at least 2 pieces that can be moved a combined 7 spaces
-        :return: Boolean
+        Calculate how many moves forward the pieces can go for the 7 split
+        :return: array of integers
         """
         results = []
 
@@ -922,9 +846,18 @@ class Client:
             else:
                 flag = False
                 for i in range(6, -1, -1):
-                    if self.calculate_forward_position(p, i) != -1 and not flag:
+                    if not flag and self.calculate_forward_position(p, i) != -1:
                         results.append(i)
                         flag = True
+
+        return results
+
+    def check_split_possible(self) -> bool:
+        """
+        Checks if there is at least 2 pieces that can be moved a combined 7 spaces
+        :return: Boolean
+        """
+        results = self.check_forward()
 
         # If any two add up to 7 or more, then return True
         results.sort()
@@ -943,18 +876,19 @@ class Client:
         """
         moves = []
         self.draw_screen()
-
-        # Cancel button
-        group = pygame.sprite.Group()
-        cancel = Images(800, 180, 'images/movement/cancel.png')
-        group.add(cancel)
-        group.add(Images(775, 80, 'images/movement/split/end_pos.png'))
-        group.draw(self.window)
+        results = self.check_forward()
 
         # Highlight all possible end locations for the piece
         for i in range(1, max_moves+1):
             end_position = self.calculate_forward_position(self.player_positions[self.color][ind], i)
-            if end_position != -1:
+
+            # Make sure there is another piece that can be moved the remaining spaces
+            flag = False
+            for n in range(len(results)):
+                if n != ind and results[n] >= (7-i):
+                    flag = True
+
+            if end_position != -1 and flag:
                 moves.append((i, end_position))
                 x = end_position // 16
                 y = end_position % 16
@@ -973,13 +907,12 @@ class Client:
                 if ev.type == pygame.MOUSEBUTTONDOWN:
                     x, y = pygame.mouse.get_pos()
 
-                    if cancel.rect.collidepoint((x, y)):
-                        return -1
-
                     space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
                     for move, end_position in moves:
                         if space_id == end_position:
                             return move
+
+            self.clock.tick(60)
 
     def handle_split(self, ind) -> [int]:
         """
@@ -988,78 +921,101 @@ class Client:
         :return: Array of Integers, representing the new positions of the pieces
         """
         positions = self.player_positions[self.color]
-        group = pygame.sprite.Group()
         max_moves = 7
-
-        group.add(Images(750, 75, 'images/movement/select_piece.png'))
-        group.draw(self.window)
-        pygame.display.flip()
 
         # Calculate the first end position
         first_move = self.draw_split_positions(ind, max_moves)
-        while first_move == -1:
-            # Draw the title
-            self.draw_screen()
-            group.draw(self.window)
-            pygame.display.update()
-
-            # Repick the piece
-            ind = self.select_piece()
-            first_move = self.draw_split_positions(ind, max_moves)
-
         positions[ind] = self.calculate_forward_position(positions[ind], first_move)
         self.check_occupied(positions[ind], ind)
         positions[ind] = self.check_slide(positions[ind], ind)
 
         max_moves -= first_move
         if max_moves > 0:
-            # Change title to selecting another piece
-            group.empty()
-            group = self.split_group(group, first_move)
+            # Visuals for who can be picked
+            moves = {}
+            for ind in range(4):
+                end_pos = self.calculate_forward_position(positions[ind], max_moves)
+                if end_pos == -1:
+                    moves[ind] = {}
+                else:
+                    moves[ind] = {'forward': end_pos}
+
+            # Visually update the screen
+            self.draw_moves_left(max_moves)
             self.draw_screen()
-            group.draw(self.window)
-            pygame.display.flip()
 
             # Calculate the second end position
+            self.draw_click_icon(moves)
+            pygame.display.flip()
             second_piece = self.select_piece()
             end_pos = self.calculate_forward_position(positions[second_piece], max_moves)
 
-            while end_pos == -1:
-                pygame.display.flip()
-                second_piece = self.select_piece()
-                end_pos = self.calculate_forward_position(positions[second_piece], max_moves)
-
-            group.empty()
             self.check_occupied(positions[second_piece], second_piece)
             positions[second_piece] = self.check_slide(end_pos, second_piece)
 
         return positions
 
-    @staticmethod
-    def split_group(group, moves) -> pygame.sprite.Group:
+    def draw_moves_left(self, moves):
         """
-        Adds images to a sprite group to reflect how many moves are left
-        :param group: Sprite group
-        :param moves: Number of moves that were made
-        :return: Sprite group with the images added
+        Displays a message that lets the user know how many moves they have left
+        :param moves: Integer, number of moves left
         """
-        group.add(Images(750, 75, 'images/movement/split/select_another.png'))
+        self.draw_screen()
 
+        title = pygame.sprite.Group()
         if moves == 1:
-            group.add(Images(780, 165, 'images/movement/split/6.png'))
+            title.add(Images(25, 285, 'images/titles/split/1_space.png'))
         elif moves == 2:
-            group.add(Images(780, 165, 'images/movement/split/5.png'))
+            title.add(Images(25, 285, 'images/titles/split/2_spaces.png'))
         elif moves == 3:
-            group.add(Images(780, 165, 'images/movement/split/4.png'))
+            title.add(Images(25, 285, 'images/titles/split/3_spaces.png'))
         elif moves == 4:
-            group.add(Images(780, 165, 'images/movement/split/3.png'))
+            title.add(Images(25, 285, 'images/titles/split/4_spaces.png'))
         elif moves == 5:
-            group.add(Images(780, 165, 'images/movement/split/2.png'))
+            title.add(Images(25, 285, 'images/titles/split/5_spaces.png'))
         elif moves == 6:
-            group.add(Images(780, 165, 'images/movement/split/1.png'))
+            title.add(Images(25, 285, 'images/titles/split/6_spaces.png'))
 
-        group.add(Images(810, 165, 'images/movement/split/moves_left.png'))
-        return group
+        title.draw(self.window)
+        pygame.display.update()
+        time.sleep(1.75)
+
+    def select_end_position(self, end_positions) -> int:
+        """
+        Allows user to select an end position from the list of positions
+        :param end_positions: Array of integers
+        :return: Integer
+        """
+        # Title telling user how to select an end position
+        title = pygame.sprite.Group()
+        title.add(Images(25, 285, 'images/titles/end_pos.png'))
+        title.draw(self.window)
+        pygame.display.flip()
+        time.sleep(2)
+
+        self.draw_screen()
+
+        # Highlight the positions
+        for i in end_positions:
+            x = (i % 16) * constants.BOARD_SQUARE
+            y = (i // 16) * constants.BOARD_SQUARE
+
+            self.draw_transparent_box(x, y, constants.BOARD_SQUARE, constants.BOARD_SQUARE, 100)
+
+        pygame.display.flip()
+
+        # Wait for the selection
+        while True:
+            events = pygame.event.get()
+            for ev in events:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
+
+                    if space_id in end_positions:
+                        return space_id
+
+            self.clock.tick(60)
 
     def win_screen(self):
         """
@@ -1072,25 +1028,25 @@ class Client:
 
         # Titles
         if self.color == winner:
-            title_group.add(Images(200, 100, 'images/end_screen/congrats.png'))
+            title_group.add(Images(10, 100, 'images/end_screen/congrats.png'))
 
             if winner == 'Red':
-                title_group.add(Images(200, 250, 'images/end_screen/you_r.png'))
+                title_group.add(Images(10, 250, 'images/end_screen/you_r.png'))
             elif winner == 'Blue':
-                title_group.add(Images(200, 250, 'images/end_screen/you_b.png'))
+                title_group.add(Images(10, 250, 'images/end_screen/you_b.png'))
             elif winner == 'Green':
-                title_group.add(Images(200, 250, 'images/end_screen/you_g.png'))
+                title_group.add(Images(10, 250, 'images/end_screen/you_g.png'))
             else:
-                title_group.add(Images(200, 250, 'images/end_screen/you_y.png'))
+                title_group.add(Images(10, 250, 'images/end_screen/you_y.png'))
 
         elif winner == 'Red':
-            title_group.add(Images(200, 100, 'images/end_screen/red_wins.png'))
+            title_group.add(Images(10, 100, 'images/end_screen/red_wins.png'))
         elif winner == 'Blue':
-            title_group.add(Images(200, 100, 'images/end_screen/blue_wins.png'))
+            title_group.add(Images(10, 100, 'images/end_screen/blue_wins.png'))
         elif winner == 'Green':
-            title_group.add(Images(200, 100, 'images/end_screen/green_wins.png'))
+            title_group.add(Images(10, 100, 'images/end_screen/green_wins.png'))
         else:
-            title_group.add(Images(200, 100, 'images/end_screen/yellow_wins.png'))
+            title_group.add(Images(10, 100, 'images/end_screen/yellow_wins.png'))
 
         title_group.draw(self.window)
         pygame.display.update()
