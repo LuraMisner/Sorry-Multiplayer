@@ -332,7 +332,7 @@ class Client:
         # Let the user draw a card
         self.your_turn.draw(self.window)
         pygame.display.flip()
-        time.sleep(2)
+        time.sleep(1.75)
 
         # Draw a card button
         draw_btn = pygame.sprite.Group()
@@ -341,10 +341,11 @@ class Client:
 
         self.draw_screen()
         draw_btn.draw(self.window)
-        pygame.display.update()
+        pygame.display.flip()
 
         card_drawn = False
         while not card_drawn:
+
             event = pygame.event.get()
             for ev in event:
                 if ev.type == pygame.MOUSEBUTTONDOWN:
@@ -352,6 +353,9 @@ class Client:
                     if draw.rect.collidepoint(pos):
                         self.get_server_response('draw_card')
                         card_drawn = True
+
+            pygame.display.update()
+            self.clock.tick(60)
 
         self.handle_movement(self.get_server_response('get_card'))
 
@@ -483,6 +487,7 @@ class Client:
         """
         selection = False
         while not selection:
+
             # Listen for a mouse click
             ev = pygame.event.get()
             for event in ev:
@@ -492,6 +497,8 @@ class Client:
                     for i in range(len(self.pieces)):
                         if self.pieces[i].collidepoint(pos):
                             return i
+
+            self.clock.tick(60)
 
     def calculate_end_positions(self, start_pos, card) -> {str: int}:
         """
@@ -823,7 +830,7 @@ class Client:
         title_group.add(Images(25, 205, 'images/titles/no_moves.png'))
         title_group.draw(self.window)
         pygame.display.update()
-        time.sleep(2)
+        time.sleep(1.75)
 
     def check_forward(self) -> [int]:
         """
@@ -905,6 +912,8 @@ class Client:
                         if space_id == end_position:
                             return move
 
+            self.clock.tick(60)
+
     def handle_split(self, ind) -> [int]:
         """
         Main function for selecting the pieces and moves being made from the 7 split
@@ -969,7 +978,7 @@ class Client:
 
         title.draw(self.window)
         pygame.display.update()
-        time.sleep(2)
+        time.sleep(1.75)
 
     def select_end_position(self, end_positions) -> int:
         """
@@ -982,7 +991,7 @@ class Client:
         title.add(Images(25, 285, 'images/titles/end_pos.png'))
         title.draw(self.window)
         pygame.display.flip()
-        time.sleep(2.5)
+        time.sleep(2)
 
         self.draw_screen()
 
@@ -1005,6 +1014,8 @@ class Client:
 
                     if space_id in end_positions:
                         return space_id
+
+            self.clock.tick(60)
 
     def win_screen(self):
         """
