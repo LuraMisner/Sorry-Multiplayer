@@ -1,6 +1,7 @@
 import constants
 from client import Client
 import pygame
+import sys
 
 
 def main():
@@ -12,7 +13,12 @@ def main():
 
     # Character selection
     client = Client(WIN)
-    client.select_color()
+
+    try:
+        client.select_color()
+    except TypeError:
+        print("Please start the server")
+        sys.exit()
 
     run = True
     while run:

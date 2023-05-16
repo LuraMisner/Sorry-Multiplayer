@@ -60,7 +60,7 @@ class Game:
                 self.player_count -= 1
 
                 # If it is their turn make it the next persons turn
-                if self.whos_turn == color:
+                if self.whos_turn == color and self.player_count > 0:
                     self.whos_turn = self.players[(ind % len(self.players))].get_color()
 
     def get_turn(self) -> str:
@@ -76,11 +76,12 @@ class Game:
         """
         Moves the turn to the next player
         """
-        flag = False
-        for ind, p in enumerate(self.players):
-            if p.get_color() == self.whos_turn and not flag:
-                self.whos_turn = self.players[(ind+1) % self.player_count].get_color()
-                flag = True
+        if self.player_count >= 1:
+            flag = False
+            for ind, p in enumerate(self.players):
+                if p.get_color() == self.whos_turn and not flag:
+                    self.whos_turn = self.players[(ind+1) % self.player_count].get_color()
+                    flag = True
 
     def current_card(self) -> Card:
         """
