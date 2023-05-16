@@ -377,7 +377,7 @@ class Client:
         # Calculate valid moves
         val = card.get_value()
         self.draw_click_icon(possible_moves)
-        piece_id = self.select_piece()
+        piece_id = self.select_piece(possible_moves)
 
         # Let the user select from the possible choices
         selection_made = False
@@ -462,8 +462,8 @@ class Client:
         self.get_server_response(f'update_position {self.player_positions[self.color]}')
         self.draw_screen()
 
-        # Draw again if you drew a two
-        if val == Value.Two:
+        # Draw again if you drew a two (if you didn't win on that move)
+        if val == Value.Two and not self.get_server_response('check_won'):
             return self.handle_turn()
 
         # End the turn
@@ -480,9 +480,10 @@ class Client:
         click_group.draw(self.window)
         pygame.display.update()
 
-    def select_piece(self) -> int:
+    def select_piece(self, moves) -> int:
         """
         Listens for a mouse down click on a board square that contains one of the players pieces
+        :param moves: Dictionary of moves each piece can make {int: {string: int}.
         :return: Integer, the index of the piece the player clicked
         """
         selection = False
@@ -495,7 +496,7 @@ class Client:
                     pos = pygame.mouse.get_pos()
 
                     for i in range(len(self.pieces)):
-                        if self.pieces[i].collidepoint(pos):
+                        if self.pieces[i].collidepoint(pos) and moves[i] != {}:
                             return i
 
             self.clock.tick(60)
@@ -947,7 +948,7 @@ class Client:
             # Calculate the second end position
             self.draw_click_icon(moves)
             pygame.display.flip()
-            second_piece = self.select_piece()
+            second_piece = self.select_piece(moves)
             end_pos = self.calculate_forward_position(positions[second_piece], max_moves)
 
             self.check_occupied(positions[second_piece], second_piece)
