@@ -559,6 +559,10 @@ class Board:
         pygame.draw.circle(self.window, constants.YELLOW, (100, 550), constants.START_CIRCLE_2 + 4)
         pygame.draw.circle(self.window, constants.BLACK, (100, 550), constants.START_CIRCLE_2)
 
+        # Board outline
+        pygame.draw.line(self.window, constants.BLACK, (769, 0), (769, 769), 4)
+        pygame.draw.line(self.window, constants.BLACK, (0, 769), (769, 769), 4)
+
     def draw_box(self, x, y, x_length, y_length, color, outline):
         """
         Draws a box on the window
