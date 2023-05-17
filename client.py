@@ -238,38 +238,51 @@ class Client:
         """
         self.update_positions()
         self.pieces = []
+        pieces_group = pygame.sprite.Group()
 
         for player in self.player_positions.keys():
             for ind, piece in enumerate(self.player_positions[player]):
-                # Draw it
-                if player == 'Green':
-                    color = constants.GREEN
-                elif player == 'Red':
-                    color = constants.RED
-                elif player == 'Yellow':
-                    color = constants.YELLOW
-                else:
-                    color = constants.BLUE
 
+                # Determine the location
                 if self.player_positions[player][ind] == constants.STARTS[player]:
                     x, y = constants.START_DISPLAYS[player][ind]
                 else:
                     y = constants.BOARD_SQUARE * (piece // 16)
                     x = constants.BOARD_SQUARE * (piece % 16)
 
-                center_y = y + (constants.BOARD_SQUARE // 2)
-                center_x = x + (constants.BOARD_SQUARE // 2)
+                # Adjust the x,y to center it
+                x = x + 4
+                y = y + 4
 
+                # If the piece is in start, white outline.
                 if self.player_positions[player][ind] == constants.STARTS[player]:
-                    circ = pygame.draw.circle(self.window, constants.WHITE, (center_x, center_y),
-                                              ((constants.BOARD_SQUARE - 2) // 2.5) + 2.5)
+                    if player == 'Green':
+                        circ = Images(x, y, 'images/pieces/green_w.png')
+                    elif player == 'Red':
+                        circ = Images(x, y, 'images/pieces/red_w.png')
+                    elif player == 'Blue':
+                        circ = Images(x, y, 'images/pieces/blue_w.png')
+                    else:
+                        circ = Images(x, y, 'images/pieces/yellow_w.png')
+
+                # Otherwise, black outline
                 else:
-                    circ = pygame.draw.circle(self.window, constants.BLACK, (center_x, center_y),
-                                              ((constants.BOARD_SQUARE-2) // 2.5) + 2.5)
-                pygame.draw.circle(self.window, color, (center_x, center_y), (constants.BOARD_SQUARE-2) // 2.5)
+                    if player == 'Green':
+                        circ = Images(x, y, 'images/pieces/green_b.png')
+                    elif player == 'Red':
+                        circ = Images(x, y, 'images/pieces/red_b.png')
+                    elif player == 'Blue':
+                        circ = Images(x, y, 'images/pieces/blue_b.png')
+                    else:
+                        circ = Images(x, y, 'images/pieces/yellow_b.png')
 
                 if self.color == player:
-                    self.pieces.append(circ)
+                    self.pieces.append(circ.get_rect())
+
+                pieces_group.add(circ)
+
+        # Draw the pieces onto the window
+        pieces_group.draw(self.window)
 
     def draw_screen(self):
         """
