@@ -1,5 +1,5 @@
 # TODO: CHANGE THE SERVER BEFORE RUNNING
-SERVER = '192.168.1.204'
+SERVER = 'numbers.numbers.number.numbers'
 PORT = 5555
 
 # Window proportions
