@@ -11,10 +11,14 @@ Movement: After drawing a card, if there is a possible move then the pieces that
 
 ## What you'll need
 Clone of the main repository
+
 Python interpreter version 3.9 or greater https://www.python.org/downloads/ (May work on other versions, but 3.9 is the lowest version texted)
+
 Python environment (not required, but would make your life easier) Suggestion: Pycharm, https://www.jetbrains.com/pycharm/download/#section=windows
+
 Install the pygame library (add it to the project as a package in an environment, or perform "pip install pygame" via the console)
-Set-up
+
+## Set-up
 Works on multiple devices on the same network, or you may run it with multiple sessions on one device. This repository will need to be cloned on all devices that are being used. First, one person must decide to be the host, they are the only person who needs to run server.py
 
 Before the host runs server.py, everyone will need to change line 2 of constants.py and replace the 'numbers.numbers.number.numbers' with a string of the hosts IP. The host can find this by opening command prompt and typing "ipconfig" and entering the IPv4 address displayed, and relaying this information to the participating parties.
