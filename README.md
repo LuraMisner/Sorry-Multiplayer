@@ -3,11 +3,11 @@
 This game follows the rules of the original board game, which can be found here: https://www.hasbro.com/common/instruct/sorry.pdf
 
 ## Controls:
-Selecting a color: Follow the click icons and select a color. Once you have selected one, the center visual will change and there will be a confirm button to select to lock in your choice. By hitting confirm, this color becomes greyed out for other players, and they can not select it. Once all players have selected a color and confirmed it, the game will start.
+**Selecting a color:** Follow the click icons and select a color. Once you have selected one, the center visual will change and there will be a confirm button to select to lock in your choice. By hitting confirm, this color becomes greyed out for other players, and they can not select it. Once all players have selected a color and confirmed it, the game will start.
 
-Drawing a card: When it is your turn, there will be a message announcement that appears on the screen. Once it fades, there will be a draw button that appears around the center of the board. After clicking it, a card visual will be displayed representing your card drawn. 
+**Drawing a card:** When it is your turn, there will be a message announcement that appears on the screen. Once it fades, there will be a draw button that appears around the center of the board. After clicking it, a card visual will be displayed representing your card drawn. 
 
-Movement: After drawing a card, if there is a possible move then the pieces that can be moved will have icons on them. Select a piece by clicking on it. If there is only one end position for the piece, it will automatically move to that position. If there are multiple positions that the piece can move with the given card, then the possible end positions are highlighted and the user is prompted to select one by clicking on it. After the piece has finished moving, then the turn ends.
+**Movement:** After drawing a card, if there is a possible move then the pieces that can be moved will have icons on them. Select a piece by clicking on it. If there is only one end position for the piece, it will automatically move to that position. If there are multiple positions that the piece can move with the given card, then the possible end positions are highlighted and the user is prompted to select one by clicking on it. After the piece has finished moving, then the turn ends.
 
 ## What you'll need
 Clone of the main repository
