@@ -12,7 +12,7 @@ This game follows the rules of the original board game, which can be found here:
 ## What you'll need
 Clone of the main repository
 
-Python interpreter version 3.9 or greater https://www.python.org/downloads/ (May work on other versions, but 3.9 is the lowest version texted)
+Python interpreter version 3.9 or greater https://www.python.org/downloads/ (May work on earlier versions, but hasn't been tested)
 
 Python environment (not required, but would make your life easier) Suggestion: Pycharm, https://www.jetbrains.com/pycharm/download/#section=windows
 
