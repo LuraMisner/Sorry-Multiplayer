@@ -1,11 +1,11 @@
 import constants
+from images import Images
 from space import Space
 from reserved_type import ReservedType
 from occupied_type import OccupiedType
 import pygame
 
 
-# Orientation: Corner by green safety, going clockwise around board.
 class Board:
     def __init__(self, win):
         self.window = win
@@ -14,12 +14,21 @@ class Board:
         self.board = []
 
         # The ids of spaces in the board if it were to be just one long array
+        # Orientation: Corner by green safety, going clockwise around board.
         self.inorder_mapping = [0, 1, 2, 18, 34, 50, 66, 82, 98, 3, 4, 20, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
                                 31, 47, 46, 45, 44, 43, 42, 41, 63, 79, 78, 95, 111, 127, 143, 159, 175, 191, 207,
                                 223, 239, 255, 254, 253, 237, 221, 205, 189, 173, 157, 252, 251, 235, 250, 249, 248,
                                 247, 246, 245, 244, 243, 242, 241, 240, 224, 208, 209, 210, 211, 212, 213, 214, 192,
                                 176, 177, 160, 144, 128, 112, 96, 80, 64, 48, 32, 16]
         self.set_up_board()
+        self.starts = pygame.sprite.Group()
+        self.initialize_images()
+
+    def initialize_images(self):
+        self.starts.add(Images(162, 46, 'images/pieces/green_start.png'))
+        self.starts.add(Images(614, 164, 'images/pieces/red_start.png'))
+        self.starts.add(Images(496, 614, 'images/pieces/blue_start.png'))
+        self.starts.add(Images(46, 496, 'images/pieces/yellow_start.png'))
 
     def set_up_board(self):
         """
@@ -541,23 +550,8 @@ class Board:
                 else:
                     pygame.draw.circle(self.window, constants.YELLOW, (center_x, center_y), constants.HOME_CIRCLE // 3)
 
-        # Draw the starts after the board is done so theyre on top
-
-        # Green start
-        pygame.draw.circle(self.window, constants.GREEN, (216, 100), constants.START_CIRCLE_2 + 4)
-        pygame.draw.circle(self.window, constants.BLACK, (216, 100), constants.START_CIRCLE_2)
-
-        # Red Start
-        pygame.draw.circle(self.window, constants.RED, (668, 218), constants.START_CIRCLE_2 + 4)
-        pygame.draw.circle(self.window, constants.BLACK, (668, 218), constants.START_CIRCLE_2)
-
-        # Blue Start
-        pygame.draw.circle(self.window, constants.BLUE, (550, 668), constants.START_CIRCLE_2 + 4)
-        pygame.draw.circle(self.window, constants.BLACK, (550, 668), constants.START_CIRCLE_2)
-
-        # Yellow Start
-        pygame.draw.circle(self.window, constants.YELLOW, (100, 550), constants.START_CIRCLE_2 + 4)
-        pygame.draw.circle(self.window, constants.BLACK, (100, 550), constants.START_CIRCLE_2)
+        # Draw the starts so they are on top
+        self.starts.draw(self.window)
 
         # Board outline
         pygame.draw.line(self.window, constants.BLACK, (769, 0), (769, 769), 4)

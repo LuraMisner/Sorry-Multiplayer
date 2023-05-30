@@ -1,5 +1,5 @@
 # TODO: CHANGE THE SERVER BEFORE RUNNING
-SERVER = 'numbers.numbers.number.numbers'
+SERVER = 'put hosts IPv4 here'
 PORT = 5555
 
 # Window proportions
