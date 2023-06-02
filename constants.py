@@ -1,5 +1,5 @@
 # TODO: CHANGE THE SERVER BEFORE RUNNING
-SERVER = 'put hosts IPv4 here'
+SERVER = '25.31.219.235'
 PORT = 5555
 
 # Window proportions

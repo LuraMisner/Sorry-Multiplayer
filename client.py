@@ -429,32 +429,33 @@ class Client:
                     self.player_positions[self.color] = self.handle_split(piece_id)
                 else:
                     end_pos = set()
-                    swap_flag = False
 
                     for key in possible_moves[piece_id].keys():
                         if possible_moves[piece_id][key] == -1:
                             # Swap, splits already been handled.
                             if key == 'swap':
                                 end_pos.update(self.calculate_swap_position())
-                                swap_flag = True
                         else:
                             end_pos.add(possible_moves[piece_id][key])
 
                     # Highlights the possible positions and allows the user to select one
                     end = self.select_end_position(end_pos)
 
-                    if swap_flag:
+                    if val == Value.Eleven:
                         if end in self.calculate_swap_position():
-                            # Handle the situation where eleven spaces forward has another player.
-                            # Prioritizes sending another player home
+                            # Handles the swap for eleven card if a swap was chosen. If a player is exactly 11 spaces
+                            # ahead, it prioritizes sending the player home rather than swapping.
                             if 'forward' not in possible_moves[piece_id] or \
                                     possible_moves[piece_id]['forward'] != end:
+
                                 # Eleven card, swap places with the other piece
                                 for k in self.player_positions.keys():
                                     if k != self.color:
                                         if end in self.player_positions[k]:
                                             ind = self.player_positions[k].index(end)
                                             self.player_positions[k][ind] = self.player_positions[self.color][piece_id]
+
+                            self.get_server_response(f'update_all_positions {self.player_positions}')
 
                     self.player_positions[self.color][piece_id] = end
 
