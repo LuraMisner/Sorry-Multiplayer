@@ -292,6 +292,18 @@ class Client:
         self.board.draw_board()
         self.draw_players()
         self.draw_card()
+
+        # Turn indicator
+        reply = self.get_server_response('whos_turn')
+        if reply == 'Green':
+            self.draw_box(315, 230, 150, 8, 0, constants.GREEN, constants.GREEN)
+        elif reply == 'Red':
+            self.draw_box(315, 230, 150, 8, 0, constants.RED, constants.RED)
+        elif reply == 'Blue':
+            self.draw_box(315, 230, 150, 8, 0, constants.BLUE, constants.BLUE)
+        elif reply == 'Yellow':
+            self.draw_box(315, 230, 150, 8, 0, constants.YELLOW, constants.YELLOW)
+
         pygame.display.update()
 
     def draw_card(self):
@@ -1065,3 +1077,18 @@ class Client:
 
         title_group.draw(self.window)
         pygame.display.update()
+
+
+"""
+TODO: 
+- Something is still wonky with the 11 swap places, some special cases send a piece home (has to do with slides?)
+- Add in a way to select a different piece
+- Draw card to another button, space?
+- Prompt to select a color on the start menu
+- Music? (also would like to do a volume slider with this)
+- Make it clearer when your piece has been swapped / sent back home
+- Make it easier to see pieces on the board
+- Play again / Exit buttons on the end screen
+- Home overhaul, make it like the start
+- Animations? Card flip / slide
+"""
