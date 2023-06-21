@@ -19,6 +19,23 @@ print("Waiting for a connection, Server Started")
 
 games = {}
 ready = {}
+new_game_flag = {}
+vote_new_game = {}
+
+
+def create_new_game(game_id):
+    print(f'Creating new game for game {game_id}')
+    new_game = Game()
+
+    for player in games[game_id].players:
+        new_game.add_player(player.get_color())
+
+    games[game_id] = new_game
+
+    # Undo new game flags
+    new_game_flag[game_id] = False
+    for key in vote_new_game[game_id].keys():
+        vote_new_game[game_id][key] = False
 
 
 def threaded_client(connect, p_id, game_id):
@@ -31,6 +48,7 @@ def threaded_client(connect, p_id, game_id):
     connect.send(str.encode(str(p_id)))
     color = None
     reply = ""
+    vote_new_game[game_id][p_id] = False
 
     while True:
         try:
@@ -63,6 +81,10 @@ def threaded_client(connect, p_id, game_id):
                         if reply:
                             ready[game_id][p_id] = True
                             color = choice
+
+                    # For restarting a game, sets player as ready
+                    elif data == 'ready':
+                        ready[game_id][p_id] = True
 
                     # Check if all players are ready to start
                     elif data == 'start':
@@ -115,11 +137,37 @@ def threaded_client(connect, p_id, game_id):
                     elif data == 'winner':
                         reply = game.winner
 
+                    elif data == 'new_game':
+                        vote_new_game[game_id][p_id] = True
+
+                    elif data == 'new_game_votes':
+                        length = 0
+                        votes = 0
+                        for key in vote_new_game[game_id].keys():
+                            if vote_new_game[game_id][key]:
+                                votes += 1
+                            length += 1
+
+                        reply = [votes, length]
+
+                    elif data == 'start_new_game':
+                        # Check that all votes have been made for a new game, and then create the new game
+                        flag = True
+                        for key in vote_new_game[game_id].keys():
+                            if not vote_new_game[game_id][key]:
+                                flag = False
+
+                        if flag:
+                            create_new_game(game_id)
+
                     # If a player quits, this will remove them from the game
                     elif data == 'quit':
                         game.remove_player(color)
+                        ready[game_id].pop()
+                        del vote_new_game[game_id][p_id]
 
                     connect.sendall(pickle.dumps(reply))
+
             else:
                 break
         except Exception as er:
@@ -152,6 +200,8 @@ while True:
         print("Creating a new game...")
         games[g_id] = Game()
         ready[g_id] = []
+        new_game_flag[g_id] = False
+        vote_new_game[g_id] = {}
         id_count = 0
 
     ready[g_id].append(False)

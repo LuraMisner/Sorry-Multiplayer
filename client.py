@@ -5,6 +5,7 @@ from images import Images
 from network import Network
 import pygame
 from reserved_type import ReservedType
+import sys
 import time
 
 
@@ -30,6 +31,7 @@ class Client:
         """
         # Start screen
         self.char_select_group.add(Images(223, -50, 'images/start_screen/sorry_title.png'))
+        self.char_select_group.add(Images(25, 90, 'images/start_screen/select_a_color.png'))
         self.char_select_group.add(Images(285, 285, 'images/start_screen/pawn2.png'))
 
         # Turn specific
@@ -373,11 +375,14 @@ class Client:
 
             event = pygame.event.get()
             for ev in event:
-                if ev.type == pygame.MOUSEBUTTONDOWN:
+                if ev.type == pygame.MOUSEBUTTONDOWN and not card_drawn:
                     pos = pygame.mouse.get_pos()
                     if draw.rect.collidepoint(pos):
                         self.get_server_response('draw_card')
                         card_drawn = True
+                if ev.type == pygame.KEYDOWN and ev.key == pygame.K_SPACE and not card_drawn:
+                    self.get_server_response('draw_card')
+                    card_drawn = True
 
             pygame.display.update()
             self.clock.tick(60)
@@ -503,6 +508,7 @@ class Client:
                 x, y = p.x, p.y
                 click_group.add(Images(x+4, y+4, 'images/titles/click_xs_2.png'))
 
+        click_group.draw(self.window)
         click_group.draw(self.window)
         pygame.display.update()
 
@@ -1075,8 +1081,60 @@ class Client:
         else:
             title_group.add(Images(10, 100, 'images/end_screen/yellow_wins.png'))
 
+        # Play again and Exit buttons
+        title_group.add(Images(235, 500, 'images/titles/play_again.png'))
+        title_group.add(Images(235, 600, 'images/titles/exit_btn.png'))
+
+        num_ready = self.get_server_response('new_game_votes')
+        self.draw_text(f'{num_ready[0]} / {num_ready[1]} players', 18, constants.BLACK, 350, 570)
+
         title_group.draw(self.window)
         pygame.display.update()
+
+    def handle_win(self):
+        again = False
+
+        # Check for a button press
+        while not again and self.get_server_response('check_won'):
+            self.win_screen()
+            self.clock.tick(60)
+
+            # Check if they click play again or exit
+            event = pygame.event.get()
+            for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+
+                    if 235 <= x <= 535 and 500 <= y <= 560:
+                        # Play again
+                        print('Readied up')
+                        self.get_server_response('new_game')
+                        again = True
+
+                    if 235 <= x <= 535 and 600 <= y <= 660:
+                        # Exit
+                        self.get_server_response('quit')
+                        sys.exit()
+
+        # Wait for everyone to be ready again
+        ready = self.get_server_response('start_new_game')
+        while not ready:
+            self.win_screen()
+
+            # Check if they click play again or exit
+            event = pygame.event.get()
+            for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    if 235 <= x <= 535 and 600 <= y <= 660:
+                        # Exit
+                        self.get_server_response('quit')
+                        sys.exit()
+
+            pygame.display.update()
+            self.clock.tick(60)
+            ready = self.get_server_response('start_new_game')
+
 
 
 """
@@ -1084,11 +1142,10 @@ TODO:
 - Something is still wonky with the 11 swap places, some special cases send a piece home (has to do with slides?)
 - Add in a way to select a different piece
 - Draw card to another button, space?
-- Prompt to select a color on the start menu
 - Music? (also would like to do a volume slider with this)
 - Make it clearer when your piece has been swapped / sent back home
 - Make it easier to see pieces on the board
-- Play again / Exit buttons on the end screen
 - Home overhaul, make it like the start
 - Animations? Card flip / slide
+- Turns go clockwise
 """
