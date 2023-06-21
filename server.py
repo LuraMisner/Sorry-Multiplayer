@@ -90,6 +90,9 @@ def threaded_client(connect, p_id, game_id):
                     elif data == 'start':
                         reply = all(ready[game_id])
 
+                        if reply:
+                            game.order_players()
+
                     # Returns the player object to the client
                     elif data == 'my_player':
                         reply = game.get_player(color)
@@ -159,6 +162,9 @@ def threaded_client(connect, p_id, game_id):
 
                         if flag:
                             create_new_game(game_id)
+
+                    elif data == 'check_vote':
+                        reply = vote_new_game[game_id][p_id]
 
                     # If a player quits, this will remove them from the game
                     elif data == 'quit':

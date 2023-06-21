@@ -14,10 +14,38 @@ class Game:
         self.card = None
 
         self.available_colors = ['Red', 'Yellow', 'Green', 'Blue']
+        self.sorted = False
 
         self.positions = {}
         self.won = False
         self.winner = None
+
+    def order_players(self):
+        """
+        Puts the list of players in order from the first person going clockwise
+        """
+
+        if not self.sorted:
+            order = ['Green', 'Red', 'Blue', 'Yellow']
+            new_list = [self.players.pop(0)]
+            last_seen_color = new_list[0].get_color()
+
+            while self.players:
+                next_color = order[(order.index(last_seen_color) + 1) % 4]
+
+                p = None
+                for player in self.players:
+                    if player.get_color() == next_color:
+                        p = player
+
+                if p:
+                    self.players.remove(p)
+                    new_list.append(p)
+
+                last_seen_color = next_color
+
+            self.players = new_list
+            self.sorted = True
 
     def add_player(self, color) -> bool:
         """

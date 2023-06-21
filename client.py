@@ -257,7 +257,8 @@ class Client:
                 y = y + 4
 
                 # If the piece is in start, white outline.
-                if self.player_positions[player][ind] == constants.STARTS[player]:
+                if self.player_positions[player][ind] == constants.STARTS[player] or \
+                   self.player_positions[player][ind] == constants.HOMES[player]:
                     if player == 'Green':
                         circ = Images(x, y, 'images/pieces/green_w.png')
                     elif player == 'Red':
@@ -364,6 +365,7 @@ class Client:
         # Draw a card button
         draw_btn = pygame.sprite.Group()
         draw = Images(315, 500, 'images/titles/draw.png')
+        draw_btn.add(Images(315, 535, 'images/titles/draw_btn_space.png'))
         draw_btn.add(draw)
 
         self.draw_screen()
@@ -1089,14 +1091,15 @@ class Client:
         self.draw_text(f'{num_ready[0]} / {num_ready[1]} players', 18, constants.BLACK, 350, 570)
 
         title_group.draw(self.window)
-        pygame.display.update()
 
     def handle_win(self):
-        again = False
+        readied_group = pygame.sprite.Group()
+        readied_group.add(Images(290, 450, 'images/titles/readied_up.png'))
 
         # Check for a button press
-        while not again and self.get_server_response('check_won'):
+        while not self.get_server_response('check_vote') and self.get_server_response('check_won'):
             self.win_screen()
+            pygame.display.update()
             self.clock.tick(60)
 
             # Check if they click play again or exit
@@ -1109,43 +1112,37 @@ class Client:
                         # Play again
                         print('Readied up')
                         self.get_server_response('new_game')
-                        again = True
 
                     if 235 <= x <= 535 and 600 <= y <= 660:
                         # Exit
                         self.get_server_response('quit')
                         sys.exit()
 
-        # Wait for everyone to be ready again
-        ready = self.get_server_response('start_new_game')
-        while not ready:
-            self.win_screen()
+        self.get_server_response('start_new_game')
 
-            # Check if they click play again or exit
-            event = pygame.event.get()
-            for ev in event:
-                if ev.type == pygame.MOUSEBUTTONDOWN:
-                    x, y = pygame.mouse.get_pos()
-                    if 235 <= x <= 535 and 600 <= y <= 660:
-                        # Exit
-                        self.get_server_response('quit')
-                        sys.exit()
+        # Adds the readied up message
+        self.win_screen()
+        readied_group.draw(self.window)
+        pygame.display.update()
 
-            pygame.display.update()
-            self.clock.tick(60)
-            ready = self.get_server_response('start_new_game')
+        # If they quit after readying up
+        event = pygame.event.get()
+        for ev in event:
+            if ev.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
 
+                if 235 <= x <= 535 and 600 <= y <= 660:
+                    # Exit
+                    self.get_server_response('quit')
+                    sys.exit()
 
 
 """
 TODO: 
 - Something is still wonky with the 11 swap places, some special cases send a piece home (has to do with slides?)
 - Add in a way to select a different piece
-- Draw card to another button, space?
 - Music? (also would like to do a volume slider with this)
 - Make it clearer when your piece has been swapped / sent back home
-- Make it easier to see pieces on the board
 - Home overhaul, make it like the start
 - Animations? Card flip / slide
-- Turns go clockwise
 """
