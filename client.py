@@ -248,6 +248,8 @@ class Client:
                 # Determine the location
                 if self.player_positions[player][ind] == constants.STARTS[player]:
                     x, y = constants.START_DISPLAYS[player][ind]
+                elif self.player_positions[player][ind] == constants.HOMES[player]:
+                    x, y = constants.HOME_DISPLAYS[player][ind]
                 else:
                     y = constants.BOARD_SQUARE * (piece // 16)
                     x = constants.BOARD_SQUARE * (piece % 16)
@@ -1140,9 +1142,9 @@ class Client:
 """
 TODO: 
 - Something is still wonky with the 11 swap places, some special cases send a piece home (has to do with slides?)
+- Always show end position
 - Add in a way to select a different piece
 - Music? (also would like to do a volume slider with this)
 - Make it clearer when your piece has been swapped / sent back home
-- Home overhaul, make it like the start
 - Animations? Card flip / slide
 """

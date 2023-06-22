@@ -22,6 +22,7 @@ class Board:
                                 176, 177, 160, 144, 128, 112, 96, 80, 64, 48, 32, 16]
         self.set_up_board()
         self.starts = pygame.sprite.Group()
+        self.homes = pygame.sprite.Group()
         self.initialize_images()
 
     def initialize_images(self):
@@ -29,6 +30,11 @@ class Board:
         self.starts.add(Images(614, 164, 'images/pieces/red_start.png'))
         self.starts.add(Images(496, 614, 'images/pieces/blue_start.png'))
         self.starts.add(Images(46, 496, 'images/pieces/yellow_start.png'))
+
+        self.homes.add(Images(66, 275, 'images/pieces/green_home.png'))
+        self.homes.add(Images(385, 66, 'images/pieces/red_home.png'))
+        self.homes.add(Images(594, 390, 'images/pieces/blue_home.png'))
+        self.homes.add(Images(275, 594, 'images/pieces/yellow_home.png'))
 
     def set_up_board(self):
         """
@@ -535,23 +541,11 @@ class Board:
                 self.draw_box(col * constants.BOARD_SQUARE, row * constants.BOARD_SQUARE, constants.BOARD_SQUARE,
                               constants.BOARD_SQUARE, constants.YELLOW, constants.BLACK)
 
-            elif s_type == ReservedType.HOME:
-                center_x = (constants.BOARD_SQUARE * col) + (constants.BOARD_SQUARE // 2)
-                center_y = (constants.BOARD_SQUARE * row) + (constants.BOARD_SQUARE // 2)
-                pygame.draw.circle(self.window, constants.BLACK, (center_x, center_y),
-                                   (constants.HOME_CIRCLE // 3) + 2)
-
-                if space_id == constants.HOMES['Green']:
-                    pygame.draw.circle(self.window, constants.GREEN, (center_x, center_y), constants.HOME_CIRCLE // 3)
-                elif space_id == constants.HOMES['Red']:
-                    pygame.draw.circle(self.window, constants.RED, (center_x, center_y), constants.HOME_CIRCLE // 3)
-                elif space_id == constants.HOMES['Blue']:
-                    pygame.draw.circle(self.window, constants.BLUE, (center_x, center_y), constants.HOME_CIRCLE // 3)
-                else:
-                    pygame.draw.circle(self.window, constants.YELLOW, (center_x, center_y), constants.HOME_CIRCLE // 3)
-
         # Draw the starts so they are on top
         self.starts.draw(self.window)
+
+        # Draw the homes
+        self.homes.draw(self.window)
 
         # Board outline
         pygame.draw.line(self.window, constants.BLACK, (769, 0), (769, 769), 4)
