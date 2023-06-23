@@ -408,82 +408,49 @@ class Client:
             self.get_server_response('end_turn')
             return
 
+        # TODO: Also need to check for if the only move(s) available would hurt you
+        #  i.e. only move to land on your own piece
+
         # Calculate valid moves
         val = card.get_value()
         self.draw_click_icon(possible_moves)
         piece_id = self.select_piece(possible_moves)
 
         # Let the user select from the possible choices
-        selection_made = False
-        while not selection_made:
-            # If there is only one possible move, then perform that.
-            if len(possible_moves[piece_id]) == 1:
-                for key in possible_moves[piece_id].keys():
-                    if possible_moves[piece_id][key] != -1:
-                        self.player_positions[self.color][piece_id] = possible_moves[piece_id][key]
-                        selection_made = True
+        end_pos = set()
+        for key in possible_moves[piece_id].keys():
+            if possible_moves[piece_id][key] != -1:
+                end_pos.add(possible_moves[piece_id][key])
 
-                    else:
-                        if key == 'split':
-                            self.player_positions[self.color] = self.handle_split(piece_id)
+        if 'split' in possible_moves[piece_id]:
+            # Only need to call the split function, because they can move it 7 spaces or split it.
+            self.player_positions[self.color] = self.handle_split(piece_id)
+        else:
+            if 'swap' in possible_moves[piece_id]:
+                end_pos.update(self.calculate_swap_position())
 
-                        elif key == 'swap':
-                            # Need to let them pick who to swap with
-                            og_pos = self.player_positions[self.color][piece_id]
-                            self.player_positions[self.color][piece_id] = self.pick_swap()
+            # Highlights the possible positions and allows the user to select one
+            end = self.select_end_position(end_pos)
+            if end == -1:
+                return self.handle_movement(card)
 
-                            if val == Value.Eleven:
-                                # If it is an eleven, put the other player at the original position
-                                target = self.player_positions[self.color][piece_id]
-                                for k in self.player_positions.keys():
-                                    if k != self.color:
-                                        if target in self.player_positions[k]:
-                                            ind = self.player_positions[k].index(target)
-                                            self.player_positions[k][ind] = og_pos
+            if val == Value.Eleven:
+                if end in self.calculate_swap_position():
+                    # Handles the swap for eleven card if a swap was chosen. If a player is exactly 11 spaces
+                    # ahead, it prioritizes sending the player home rather than swapping.
+                    if 'forward' not in possible_moves[piece_id] or \
+                       possible_moves[piece_id]['forward'] != end:
 
-                                self.get_server_response(f'update_all_positions {self.player_positions}')
-                        selection_made = True
-            else:
-                # 7s, 10s, and 11s can all fall into here.
-                if 'split' in possible_moves[piece_id]:
-                    # Only need to call the split function, because they can move it 7 spaces or split it.
-                    self.player_positions[self.color] = self.handle_split(piece_id)
-                else:
-                    end_pos = set()
+                        # Eleven card, swap places with the other piece
+                        for k in self.player_positions.keys():
+                            if k != self.color:
+                                if end in self.player_positions[k]:
+                                    ind = self.player_positions[k].index(end)
+                                    self.player_positions[k][ind] = self.player_positions[self.color][piece_id]
 
-                    for key in possible_moves[piece_id].keys():
-                        if possible_moves[piece_id][key] == -1:
-                            # Swap, splits already been handled.
-                            if key == 'swap':
-                                end_pos.update(self.calculate_swap_position())
-                        else:
-                            end_pos.add(possible_moves[piece_id][key])
+                    self.get_server_response(f'update_all_positions {self.player_positions}')
 
-                    # Highlights the possible positions and allows the user to select one
-                    end = self.select_end_position(end_pos)
-
-                    if val == Value.Eleven:
-                        if end in self.calculate_swap_position():
-                            # Handles the swap for eleven card if a swap was chosen. If a player is exactly 11 spaces
-                            # ahead, it prioritizes sending the player home rather than swapping.
-                            if 'forward' not in possible_moves[piece_id] or \
-                                    possible_moves[piece_id]['forward'] != end:
-
-                                # Eleven card, swap places with the other piece
-                                for k in self.player_positions.keys():
-                                    if k != self.color:
-                                        if end in self.player_positions[k]:
-                                            ind = self.player_positions[k].index(end)
-                                            self.player_positions[k][ind] = self.player_positions[self.color][piece_id]
-
-                            self.get_server_response(f'update_all_positions {self.player_positions}')
-
-                    self.player_positions[self.color][piece_id] = end
-
-                selection_made = True
-
-            pygame.display.update()
-            self.clock.tick(60)
+            self.player_positions[self.color][piece_id] = end
 
         # Update movement on server side
         self.get_server_response(f'update_position {self.player_positions[self.color]}')
@@ -926,6 +893,7 @@ class Client:
                     flag = True
 
             if end_position != -1 and flag:
+                # TODO: Utilize other function here?
                 moves.append((i, end_position))
                 x = end_position // 16
                 y = end_position % 16
@@ -952,6 +920,7 @@ class Client:
             self.clock.tick(60)
 
     def handle_split(self, ind) -> [int]:
+        # TODO: Way to select a difference piece
         """
         Main function for selecting the pieces and moves being made from the 7 split
         :param ind: Index of the first selected piece
@@ -1028,9 +997,15 @@ class Client:
         title.add(Images(25, 285, 'images/titles/end_pos.png'))
         title.draw(self.window)
         pygame.display.flip()
-        time.sleep(2)
+        time.sleep(1.7)
 
         self.draw_screen()
+
+        # Button to let user select a different piece
+        new_piece = pygame.sprite.Group()
+        new_piece_btn = Images(315, 500, 'images/titles/different_piece.png')
+        new_piece.add(new_piece_btn)
+        new_piece.draw(self.window)
 
         # Highlight the positions
         for i in end_positions:
@@ -1051,6 +1026,9 @@ class Client:
 
                     if space_id in end_positions:
                         return space_id
+
+                    elif new_piece_btn.rect.collidepoint(x, y):
+                        return -1
 
             self.clock.tick(60)
 
@@ -1141,10 +1119,10 @@ class Client:
 
 """
 TODO: 
-- Something is still wonky with the 11 swap places, some special cases send a piece home (has to do with slides?)
-- Always show end position
-- Add in a way to select a different piece
-- Music? (also would like to do a volume slider with this)
+- Add in a way to select a different piece (SPLIT)
 - Make it clearer when your piece has been swapped / sent back home
+
+EXTRA:
 - Animations? Card flip / slide
+- Music? (also would like to do a volume slider with this)
 """
