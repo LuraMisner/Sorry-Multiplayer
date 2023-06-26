@@ -424,7 +424,12 @@ class Client:
 
         if 'split' in possible_moves[piece_id]:
             # Only need to call the split function, because they can move it 7 spaces or split it.
-            self.player_positions[self.color] = self.handle_split(piece_id)
+            new_positions = self.handle_split(piece_id)
+
+            if new_positions == [-1]:
+                return self.handle_movement(card)
+
+            self.player_positions[self.color] = new_positions
         else:
             if 'swap' in possible_moves[piece_id]:
                 end_pos.update(self.calculate_swap_position())
@@ -878,9 +883,16 @@ class Client:
         :param max_moves: Maximum number of moves they can make
         :return: Integer, how many spaces the piece moved
         """
+        end_pos = []
         moves = []
         self.draw_screen()
         results = self.check_forward()
+        """
+        Seperate the moves array into two different arrays, one of the positions and the moves made/
+        then call select position on the end position array. index the move picked and then use the  index
+        to return how many spaces were moved. This should make this function less clunky, and allow them
+        to select various pieces
+        """
 
         # Highlight all possible end locations for the piece
         for i in range(1, max_moves+1):
@@ -893,34 +905,17 @@ class Client:
                     flag = True
 
             if end_position != -1 and flag:
-                # TODO: Utilize other function here?
-                moves.append((i, end_position))
-                x = end_position // 16
-                y = end_position % 16
+                end_pos.append(end_position)
+                moves.append(i)
 
-                self.draw_transparent_box(y * constants.BOARD_SQUARE, x * constants.BOARD_SQUARE,
-                                          constants.BOARD_SQUARE, constants.BOARD_SQUARE, 100)
+        selected = self.select_end_position(end_pos)
+        if selected == -1:
+            return -1
 
-        pygame.display.update()
-
-        # Wait for a selection on one of the squares, and return the end position
-        selected = False
-        while not selected:
-
-            events = pygame.event.get()
-            for ev in events:
-                if ev.type == pygame.MOUSEBUTTONDOWN:
-                    x, y = pygame.mouse.get_pos()
-
-                    space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
-                    for move, end_position in moves:
-                        if space_id == end_position:
-                            return move
-
-            self.clock.tick(60)
+        index = end_pos.index(selected)
+        return moves[index]
 
     def handle_split(self, ind) -> [int]:
-        # TODO: Way to select a difference piece
         """
         Main function for selecting the pieces and moves being made from the 7 split
         :param ind: Index of the first selected piece
@@ -931,33 +926,55 @@ class Client:
 
         # Calculate the first end position
         first_move = self.draw_split_positions(ind, max_moves)
+        if first_move == -1:
+            return [-1]
+
+        # Update the position
         positions[ind] = self.calculate_forward_position(positions[ind], first_move)
         self.check_occupied(positions[ind], ind)
         positions[ind] = self.check_slide(positions[ind], ind)
 
+        # Draw updated position
+        self.get_server_response(f'update_position {positions}')
+        self.draw_screen()
+
         max_moves -= first_move
         if max_moves > 0:
-            # Visuals for who can be picked
-            moves = {}
-            for ind in range(4):
-                end_pos = self.calculate_forward_position(positions[ind], max_moves)
-                if end_pos == -1:
-                    moves[ind] = {}
-                else:
-                    moves[ind] = {'forward': end_pos}
+            positions = self.handle_second_piece(max_moves)
 
-            # Visually update the screen
-            self.draw_moves_left(max_moves)
-            self.draw_screen()
+        return positions
 
-            # Calculate the second end position
-            self.draw_click_icon(moves)
-            pygame.display.flip()
-            second_piece = self.select_piece(moves)
-            end_pos = self.calculate_forward_position(positions[second_piece], max_moves)
+    def handle_second_piece(self, max_moves) -> [int]:
+        positions = self.player_positions[self.color]
 
-            self.check_occupied(positions[second_piece], second_piece)
-            positions[second_piece] = self.check_slide(end_pos, second_piece)
+        # Visuals for who can be picked
+        moves = {}
+        for ind in range(4):
+            end_pos = self.calculate_forward_position(positions[ind], max_moves)
+            if end_pos == -1:
+                moves[ind] = {}
+            else:
+                moves[ind] = {'forward': end_pos}
+
+        # Visually update the screen
+        self.draw_moves_left(max_moves)
+        self.draw_screen()
+
+        # Calculate the second end position
+        self.draw_click_icon(moves)
+        pygame.display.flip()
+
+        # Show the end positions
+        second_piece = self.select_piece(moves)
+        end_pos = self.select_end_position([self.calculate_forward_position(positions[second_piece], max_moves)])
+
+        # User switches piece
+        if end_pos == -1:
+            return self.handle_second_piece(max_moves)
+
+        # Handle occupied or slides
+        self.check_occupied(positions[second_piece], second_piece)
+        positions[second_piece] = self.check_slide(end_pos, second_piece)
 
         return positions
 
@@ -984,7 +1001,7 @@ class Client:
 
         title.draw(self.window)
         pygame.display.update()
-        time.sleep(1.75)
+        time.sleep(1.6)
 
     def select_end_position(self, end_positions) -> int:
         """
@@ -1119,7 +1136,7 @@ class Client:
 
 """
 TODO: 
-- Add in a way to select a different piece (SPLIT)
+- Skips turn if only move you can make sends yourself home
 - Make it clearer when your piece has been swapped / sent back home
 
 EXTRA:
