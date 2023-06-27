@@ -19,7 +19,6 @@ print("Waiting for a connection, Server Started")
 
 games = {}
 ready = {}
-new_game_flag = {}
 vote_new_game = {}
 
 
@@ -33,7 +32,6 @@ def create_new_game(game_id):
     games[game_id] = new_game
 
     # Undo new game flags
-    new_game_flag[game_id] = False
     for key in vote_new_game[game_id].keys():
         vote_new_game[game_id][key] = False
 
@@ -131,6 +129,15 @@ def threaded_client(connect, p_id, game_id):
                         game.check_win()
                         game.next_player()
 
+                    # Check if there's a message for our user
+                    elif data == 'check_log':
+                        reply = game.get_msg(color)
+
+                    # Add a message for another player
+                    elif data[:7] == 'add_log':
+                        col, msg = data[8:].split(',')
+                        game.add_msg(col, msg)
+
                     # Check if there is a winner
                     elif data == 'check_won':
                         game.check_win()
@@ -168,7 +175,9 @@ def threaded_client(connect, p_id, game_id):
 
                     # If a player quits, this will remove them from the game
                     elif data == 'quit':
-                        game.remove_player(color)
+                        if color:
+                            game.remove_player(color)
+
                         ready[game_id].pop()
                         del vote_new_game[game_id][p_id]
 
@@ -184,7 +193,6 @@ def threaded_client(connect, p_id, game_id):
     connect.close()
 
 
-id_count = 0
 g_id = 0
 while True:
     """
@@ -194,7 +202,6 @@ while True:
     """
     conn, addr = s.accept()
     print("Connected to: ", addr)
-    id_count += 1
 
     # If the game is full or already started, then move to a different game
     if g_id in games:
@@ -206,9 +213,7 @@ while True:
         print("Creating a new game...")
         games[g_id] = Game()
         ready[g_id] = []
-        new_game_flag[g_id] = False
         vote_new_game[g_id] = {}
-        id_count = 0
 
     ready[g_id].append(False)
-    start_new_thread(threaded_client, (conn, id_count, g_id))
+    start_new_thread(threaded_client, (conn, len(ready[g_id]) - 1, g_id))
