@@ -21,9 +21,15 @@ class Client:
         self.player_positions = {}
         self.pieces = []
 
+        # Images
         self.char_select_group = pygame.sprite.Group()
         self.your_turn = pygame.sprite.Group()
         self.initialize_image_groups()
+
+        # Background music
+        pygame.mixer.music.load('sounds/background.mp3')
+        pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(.10)
 
     def initialize_image_groups(self):
         """
@@ -394,6 +400,9 @@ class Client:
                     pos = pygame.mouse.get_pos()
                     if draw.rect.collidepoint(pos):
                         self.get_server_response('draw_card')
+                        pygame.mixer.music.pause()
+                        pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/card-flip.mp3'))
+                        pygame.mixer.music.unpause()
                         card_drawn = True
 
                 if ev.type == pygame.KEYDOWN and ev.key == pygame.K_SPACE and not card_drawn:
@@ -717,6 +726,11 @@ class Client:
                         # Go through the entirety of the slide if we are sliding anyone off it
                         s_ind = self.board.inorder_mapping.index(s)
                         e_ind = self.board.inorder_mapping.index(e)
+
+                        # Slide sound effect
+                        pygame.mixer.music.pause()
+                        pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/slide.mp3'))
+                        pygame.mixer.music.unpause()
 
                         for i in range(s_ind, e_ind + 1):
                             s_id = self.board.inorder_mapping[i]
@@ -1144,8 +1158,15 @@ class Client:
         """
         Draws the win screen and waits for the user to exit, or ready up to play again.
         """
+        # Sound effects and images
+        pygame.mixer.music.pause()
+
         readied_group = pygame.sprite.Group()
         readied_group.add(Images(290, 450, 'images/titles/readied_up.png'))
+
+        # This allows it to only play the effect once, because we wait for them to ready or exit
+        if not self.get_server_response('check_vote'):
+            pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/win.mp3'))
 
         # Check for a button press
         while not self.get_server_response('check_vote') and self.get_server_response('check_won'):
@@ -1162,6 +1183,7 @@ class Client:
                     if 235 <= x <= 535 and 500 <= y <= 560:
                         # Play again
                         print('Readied up')
+                        pygame.mixer.music.unpause()
                         self.get_server_response('new_game')
 
                     if 235 <= x <= 535 and 600 <= y <= 660:
@@ -1186,10 +1208,3 @@ class Client:
                     # Exit
                     self.get_server_response('quit')
                     sys.exit()
-
-
-"""
-EXTRA:
-- Animations? Card flip / slide
-- Music? (also would like to do a volume slider with this)
-"""
