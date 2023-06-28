@@ -26,10 +26,11 @@ def main():
 
         # If the game is going, draw the board. Otherwise, draw the end screen
         if not client.get_server_response('check_won'):
+            client.check_log()
             client.draw_screen()
             client.check_our_turn()
         else:
-            client.win_screen()
+            client.handle_win()
 
         # Check for a quit
         for event in pygame.event.get():

@@ -5,6 +5,7 @@ from images import Images
 from network import Network
 import pygame
 from reserved_type import ReservedType
+import sys
 import time
 
 
@@ -20,9 +21,15 @@ class Client:
         self.player_positions = {}
         self.pieces = []
 
+        # Images
         self.char_select_group = pygame.sprite.Group()
         self.your_turn = pygame.sprite.Group()
         self.initialize_image_groups()
+
+        # Background music
+        pygame.mixer.music.load('sounds/background.mp3')
+        pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(.10)
 
     def initialize_image_groups(self):
         """
@@ -30,6 +37,7 @@ class Client:
         """
         # Start screen
         self.char_select_group.add(Images(223, -50, 'images/start_screen/sorry_title.png'))
+        self.char_select_group.add(Images(25, 90, 'images/start_screen/select_a_color.png'))
         self.char_select_group.add(Images(285, 285, 'images/start_screen/pawn2.png'))
 
         # Turn specific
@@ -47,6 +55,7 @@ class Client:
         """
         Updates all player positions
         """
+        time.sleep(.1)
         self.player_positions = self.get_server_response('get_player_positions')
 
     def draw_start(self, color):
@@ -138,9 +147,9 @@ class Client:
             self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 315, 500)
 
             # Look for a selection
-            ev = pygame.event.get()
-            for event in ev:
-                if event.type == pygame.MOUSEBUTTONUP:
+            event = pygame.event.get()
+            for ev in event:
+                if ev.type == pygame.MOUSEBUTTONUP:
                     x, y = pygame.mouse.get_pos()
 
                     if 285 <= x <= 285 + constants.CONFIRM_X and 530 <= y <= 530 + constants.CONFIRM_Y:
@@ -154,6 +163,10 @@ class Client:
                         choice = 'Yellow'
                     elif 385 <= x <= 385 + constants.SELECT_X and 385 <= y <= 385 + constants.SELECT_Y:
                         choice = 'Blue'
+
+                if ev.type == pygame.QUIT:
+                    self.get_server_response('quit')
+                    sys.exit()
 
             # Wait for a selection
             if choice:
@@ -181,6 +194,12 @@ class Client:
             self.draw_start(self.color)
 
             self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 315, 500)
+
+            event = pygame.event.get()
+            for ev in event:
+                if ev.type == pygame.QUIT:
+                    self.get_server_response('quit')
+                    sys.exit()
 
             pygame.display.update()
             self.clock.tick(60)
@@ -246,6 +265,8 @@ class Client:
                 # Determine the location
                 if self.player_positions[player][ind] == constants.STARTS[player]:
                     x, y = constants.START_DISPLAYS[player][ind]
+                elif self.player_positions[player][ind] == constants.HOMES[player]:
+                    x, y = constants.HOME_DISPLAYS[player][ind]
                 else:
                     y = constants.BOARD_SQUARE * (piece // 16)
                     x = constants.BOARD_SQUARE * (piece % 16)
@@ -255,7 +276,8 @@ class Client:
                 y = y + 4
 
                 # If the piece is in start, white outline.
-                if self.player_positions[player][ind] == constants.STARTS[player]:
+                if self.player_positions[player][ind] == constants.STARTS[player] or \
+                   self.player_positions[player][ind] == constants.HOMES[player]:
                     if player == 'Green':
                         circ = Images(x, y, 'images/pieces/green_w.png')
                     elif player == 'Red':
@@ -292,6 +314,18 @@ class Client:
         self.board.draw_board()
         self.draw_players()
         self.draw_card()
+
+        # Turn indicator
+        reply = self.get_server_response('whos_turn')
+        if reply == 'Green':
+            self.draw_box(315, 230, 150, 8, 0, constants.GREEN, constants.GREEN)
+        elif reply == 'Red':
+            self.draw_box(315, 230, 150, 8, 0, constants.RED, constants.RED)
+        elif reply == 'Blue':
+            self.draw_box(315, 230, 150, 8, 0, constants.BLUE, constants.BLUE)
+        elif reply == 'Yellow':
+            self.draw_box(315, 230, 150, 8, 0, constants.YELLOW, constants.YELLOW)
+
         pygame.display.update()
 
     def draw_card(self):
@@ -350,6 +384,7 @@ class Client:
         # Draw a card button
         draw_btn = pygame.sprite.Group()
         draw = Images(315, 500, 'images/titles/draw.png')
+        draw_btn.add(Images(315, 535, 'images/titles/draw_btn_space.png'))
         draw_btn.add(draw)
 
         self.draw_screen()
@@ -361,11 +396,22 @@ class Client:
 
             event = pygame.event.get()
             for ev in event:
-                if ev.type == pygame.MOUSEBUTTONDOWN:
+                if ev.type == pygame.MOUSEBUTTONDOWN and not card_drawn:
                     pos = pygame.mouse.get_pos()
                     if draw.rect.collidepoint(pos):
                         self.get_server_response('draw_card')
+                        pygame.mixer.music.pause()
+                        pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/card-flip.mp3'))
+                        pygame.mixer.music.unpause()
                         card_drawn = True
+
+                if ev.type == pygame.KEYDOWN and ev.key == pygame.K_SPACE and not card_drawn:
+                    self.get_server_response('draw_card')
+                    card_drawn = True
+
+                if ev.type == pygame.QUIT:
+                    self.get_server_response('quit')
+                    sys.exit()
 
             pygame.display.update()
             self.clock.tick(60)
@@ -381,7 +427,7 @@ class Client:
         self.draw_screen()
 
         possible_moves = self.check_possible(self.player_positions[self.color], card)
-        if possible_moves == {0: {}, 1: {}, 2: {}, 3: {}}:
+        if possible_moves == {0: {}, 1: {}, 2: {}, 3: {}} or not self.check_moves(possible_moves):
             # Do something here to show there is no moves
             self.no_possible_moves()
             self.get_server_response('end_turn')
@@ -393,76 +439,46 @@ class Client:
         piece_id = self.select_piece(possible_moves)
 
         # Let the user select from the possible choices
-        selection_made = False
-        while not selection_made:
-            # If there is only one possible move, then perform that.
-            if len(possible_moves[piece_id]) == 1:
-                for key in possible_moves[piece_id].keys():
-                    if possible_moves[piece_id][key] != -1:
-                        self.player_positions[self.color][piece_id] = possible_moves[piece_id][key]
-                        selection_made = True
+        if 'split' in possible_moves[piece_id]:
+            # Only need to call the split function, because they can move it 7 spaces or split it.
+            new_positions = self.handle_split(piece_id)
 
-                    else:
-                        if key == 'split':
-                            self.player_positions[self.color] = self.handle_split(piece_id)
+            if new_positions == [-1]:
+                return self.handle_movement(card)
 
-                        elif key == 'swap':
-                            # Need to let them pick who to swap with
-                            og_pos = self.player_positions[self.color][piece_id]
-                            self.player_positions[self.color][piece_id] = self.pick_swap()
+            self.player_positions[self.color] = new_positions
+        else:
+            end_pos = set()
+            for key in possible_moves[piece_id].keys():
+                if possible_moves[piece_id][key] != -1:
+                    end_pos.add(possible_moves[piece_id][key])
 
-                            if val == Value.Eleven:
-                                # If it is an eleven, put the other player at the original position
-                                target = self.player_positions[self.color][piece_id]
-                                for k in self.player_positions.keys():
-                                    if k != self.color:
-                                        if target in self.player_positions[k]:
-                                            ind = self.player_positions[k].index(target)
-                                            self.player_positions[k][ind] = og_pos
+            if 'swap' in possible_moves[piece_id]:
+                end_pos.update(self.calculate_swap_position())
 
-                                self.get_server_response(f'update_all_positions {self.player_positions}')
-                        selection_made = True
-            else:
-                # 7s, 10s, and 11s can all fall into here.
-                if 'split' in possible_moves[piece_id]:
-                    # Only need to call the split function, because they can move it 7 spaces or split it.
-                    self.player_positions[self.color] = self.handle_split(piece_id)
-                else:
-                    end_pos = set()
+            # Highlights the possible positions and allows the user to select one
+            end = self.select_end_position(end_pos)
+            if end == -1:
+                return self.handle_movement(card)
 
-                    for key in possible_moves[piece_id].keys():
-                        if possible_moves[piece_id][key] == -1:
-                            # Swap, splits already been handled.
-                            if key == 'swap':
-                                end_pos.update(self.calculate_swap_position())
-                        else:
-                            end_pos.add(possible_moves[piece_id][key])
+            if val == Value.Eleven:
+                if end in self.calculate_swap_position():
+                    # Handles the swap for eleven card if a swap was chosen. If a player is exactly 11 spaces
+                    # ahead, it prioritizes sending the player home rather than swapping.
+                    if 'forward' not in possible_moves[piece_id] or \
+                       possible_moves[piece_id]['forward'] != end:
 
-                    # Highlights the possible positions and allows the user to select one
-                    end = self.select_end_position(end_pos)
+                        # Eleven card, swap places with the other piece
+                        for k in self.player_positions.keys():
+                            if k != self.color:
+                                if end in self.player_positions[k]:
+                                    ind = self.player_positions[k].index(end)
+                                    self.player_positions[k][ind] = self.player_positions[self.color][piece_id]
+                                    self.get_server_response(f'add_log {k},swapped')
 
-                    if val == Value.Eleven:
-                        if end in self.calculate_swap_position():
-                            # Handles the swap for eleven card if a swap was chosen. If a player is exactly 11 spaces
-                            # ahead, it prioritizes sending the player home rather than swapping.
-                            if 'forward' not in possible_moves[piece_id] or \
-                                    possible_moves[piece_id]['forward'] != end:
+                    self.get_server_response(f'update_all_positions {self.player_positions}')
 
-                                # Eleven card, swap places with the other piece
-                                for k in self.player_positions.keys():
-                                    if k != self.color:
-                                        if end in self.player_positions[k]:
-                                            ind = self.player_positions[k].index(end)
-                                            self.player_positions[k][ind] = self.player_positions[self.color][piece_id]
-
-                            self.get_server_response(f'update_all_positions {self.player_positions}')
-
-                    self.player_positions[self.color][piece_id] = end
-
-                selection_made = True
-
-            pygame.display.update()
-            self.clock.tick(60)
+            self.player_positions[self.color][piece_id] = end
 
         # Update movement on server side
         self.get_server_response(f'update_position {self.player_positions[self.color]}')
@@ -483,6 +499,16 @@ class Client:
         # End the turn
         self.get_server_response('end_turn')
 
+    def check_moves(self, possible_moves):
+        # Check if there is at least one end position that isn't a space occupied by your own piece
+        for dic in possible_moves.keys():
+            for key in possible_moves[dic].keys():
+                if possible_moves[dic][key] == constants.HOMES[self.color] or \
+                        possible_moves[dic][key] not in self.player_positions[self.color]:
+                    return True
+
+        return False
+
     def draw_click_icon(self, options):
         click_group = pygame.sprite.Group()
         for ind, p in enumerate(self.pieces):
@@ -491,6 +517,7 @@ class Client:
                 x, y = p.x, p.y
                 click_group.add(Images(x+4, y+4, 'images/titles/click_xs_2.png'))
 
+        click_group.draw(self.window)
         click_group.draw(self.window)
         pygame.display.update()
 
@@ -504,14 +531,18 @@ class Client:
         while not selection:
 
             # Listen for a mouse click
-            ev = pygame.event.get()
-            for event in ev:
-                if event.type == pygame.MOUSEBUTTONUP:
+            event = pygame.event.get()
+            for ev in event:
+                if ev.type == pygame.MOUSEBUTTONUP:
                     pos = pygame.mouse.get_pos()
 
                     for i in range(len(self.pieces)):
                         if self.pieces[i].collidepoint(pos) and moves[i] != {}:
                             return i
+
+                if ev.type == pygame.QUIT:
+                    self.get_server_response('quit')
+                    sys.exit()
 
             self.clock.tick(60)
 
@@ -696,6 +727,11 @@ class Client:
                         s_ind = self.board.inorder_mapping.index(s)
                         e_ind = self.board.inorder_mapping.index(e)
 
+                        # Slide sound effect
+                        pygame.mixer.music.pause()
+                        pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/slide.mp3'))
+                        pygame.mixer.music.unpause()
+
                         for i in range(s_ind, e_ind + 1):
                             s_id = self.board.inorder_mapping[i]
                             if 'Slide' in self.board.board[s_id].get_type().value:
@@ -720,8 +756,8 @@ class Client:
                     ind = self.player_positions[key].index(space_id)
 
                     # Need to move the player back to their spawn
+                    self.get_server_response(f'add_log {key},bh')
                     self.player_positions[key][ind] = constants.STARTS[key]
-
             else:
                 # Need to make sure you aren't counting the one that just moved, or any in the home
                 for ind, space in enumerate(self.player_positions[self.color]):
@@ -831,6 +867,10 @@ class Client:
                         selected = space_id
                         selection = True
 
+                if ev.type == pygame.QUIT:
+                    self.get_server_response('quit')
+                    sys.exit()
+
             pygame.display.update()
             self.clock.tick(60)
 
@@ -889,6 +929,7 @@ class Client:
         :param max_moves: Maximum number of moves they can make
         :return: Integer, how many spaces the piece moved
         """
+        end_pos = []
         moves = []
         self.draw_screen()
         results = self.check_forward()
@@ -904,30 +945,15 @@ class Client:
                     flag = True
 
             if end_position != -1 and flag:
-                moves.append((i, end_position))
-                x = end_position // 16
-                y = end_position % 16
+                end_pos.append(end_position)
+                moves.append(i)
 
-                self.draw_transparent_box(y * constants.BOARD_SQUARE, x * constants.BOARD_SQUARE,
-                                          constants.BOARD_SQUARE, constants.BOARD_SQUARE, 100)
+        selected = self.select_end_position(end_pos)
+        if selected == -1:
+            return -1
 
-        pygame.display.update()
-
-        # Wait for a selection on one of the squares, and return the end position
-        selected = False
-        while not selected:
-
-            events = pygame.event.get()
-            for ev in events:
-                if ev.type == pygame.MOUSEBUTTONDOWN:
-                    x, y = pygame.mouse.get_pos()
-
-                    space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
-                    for move, end_position in moves:
-                        if space_id == end_position:
-                            return move
-
-            self.clock.tick(60)
+        index = end_pos.index(selected)
+        return moves[index]
 
     def handle_split(self, ind) -> [int]:
         """
@@ -940,33 +966,60 @@ class Client:
 
         # Calculate the first end position
         first_move = self.draw_split_positions(ind, max_moves)
+        if first_move == -1:
+            return [-1]
+
+        # Update the position
         positions[ind] = self.calculate_forward_position(positions[ind], first_move)
         self.check_occupied(positions[ind], ind)
         positions[ind] = self.check_slide(positions[ind], ind)
 
+        # Draw updated position
+        self.get_server_response(f'update_position {positions}')
+        self.draw_screen()
+
         max_moves -= first_move
         if max_moves > 0:
-            # Visuals for who can be picked
-            moves = {}
-            for ind in range(4):
-                end_pos = self.calculate_forward_position(positions[ind], max_moves)
-                if end_pos == -1:
-                    moves[ind] = {}
-                else:
-                    moves[ind] = {'forward': end_pos}
+            positions = self.handle_second_piece(max_moves)
 
-            # Visually update the screen
-            self.draw_moves_left(max_moves)
-            self.draw_screen()
+        return positions
 
-            # Calculate the second end position
-            self.draw_click_icon(moves)
-            pygame.display.flip()
-            second_piece = self.select_piece(moves)
-            end_pos = self.calculate_forward_position(positions[second_piece], max_moves)
+    def handle_second_piece(self, max_moves) -> [int]:
+        """
+        Handles the selection of the second piece in a seven split card
+        :param max_moves: Integer, moves left
+        :return: Array of Integers representing the positions of the pieces after the moves
+        """
+        positions = self.player_positions[self.color]
 
-            self.check_occupied(positions[second_piece], second_piece)
-            positions[second_piece] = self.check_slide(end_pos, second_piece)
+        # Visuals for who can be picked
+        moves = {}
+        for ind in range(4):
+            end_pos = self.calculate_forward_position(positions[ind], max_moves)
+            if end_pos == -1:
+                moves[ind] = {}
+            else:
+                moves[ind] = {'forward': end_pos}
+
+        # Visually update the screen
+        self.draw_moves_left(max_moves)
+        self.draw_screen()
+
+        # Calculate the second end position
+        self.draw_click_icon(moves)
+        pygame.display.flip()
+
+        # Show the end positions
+        second_piece = self.select_piece(moves)
+        end_pos = self.select_end_position([self.calculate_forward_position(positions[second_piece], max_moves)])
+
+        # User switches piece
+        if end_pos == -1:
+            return self.handle_second_piece(max_moves)
+
+        # Handle occupied or slides
+        self.check_occupied(positions[second_piece], second_piece)
+        positions[second_piece] = self.check_slide(end_pos, second_piece)
 
         return positions
 
@@ -993,7 +1046,7 @@ class Client:
 
         title.draw(self.window)
         pygame.display.update()
-        time.sleep(1.75)
+        time.sleep(1.6)
 
     def select_end_position(self, end_positions) -> int:
         """
@@ -1006,9 +1059,15 @@ class Client:
         title.add(Images(25, 285, 'images/titles/end_pos.png'))
         title.draw(self.window)
         pygame.display.flip()
-        time.sleep(2)
+        time.sleep(1.7)
 
         self.draw_screen()
+
+        # Button to let user select a different piece
+        new_piece = pygame.sprite.Group()
+        new_piece_btn = Images(315, 500, 'images/titles/different_piece.png')
+        new_piece.add(new_piece_btn)
+        new_piece.draw(self.window)
 
         # Highlight the positions
         for i in end_positions:
@@ -1030,7 +1089,30 @@ class Client:
                     if space_id in end_positions:
                         return space_id
 
+                    elif new_piece_btn.rect.collidepoint(x, y):
+                        return -1
+
+                if ev.type == pygame.QUIT:
+                    self.get_server_response('quit')
+                    sys.exit()
+
             self.clock.tick(60)
+
+    def check_log(self):
+        reply = self.get_server_response('check_log')
+        if reply:
+            self.draw_screen()
+            alert = pygame.sprite.Group()
+
+            if reply == 'bh':
+                alert.add(Images(25, 285, 'images/titles/sent_start.png'))
+            elif reply == 'swapped':
+                alert.add(Images(25, 285, 'images/titles/swapped_places.png'))
+
+            # Display the message to the user
+            alert.draw(self.window)
+            pygame.display.update()
+            time.sleep(2)
 
     def win_screen(self):
         """
@@ -1063,5 +1145,66 @@ class Client:
         else:
             title_group.add(Images(10, 100, 'images/end_screen/yellow_wins.png'))
 
+        # Play again and Exit buttons
+        title_group.add(Images(235, 500, 'images/titles/play_again.png'))
+        title_group.add(Images(235, 600, 'images/titles/exit_btn.png'))
+
+        num_ready = self.get_server_response('new_game_votes')
+        self.draw_text(f'{num_ready[0]} / {num_ready[1]} players', 18, constants.BLACK, 350, 570)
+
         title_group.draw(self.window)
+
+    def handle_win(self):
+        """
+        Draws the win screen and waits for the user to exit, or ready up to play again.
+        """
+        # Sound effects and images
+        pygame.mixer.music.pause()
+
+        readied_group = pygame.sprite.Group()
+        readied_group.add(Images(290, 450, 'images/titles/readied_up.png'))
+
+        # This allows it to only play the effect once, because we wait for them to ready or exit
+        if not self.get_server_response('check_vote'):
+            pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/win.mp3'))
+
+        # Check for a button press
+        while not self.get_server_response('check_vote') and self.get_server_response('check_won'):
+            self.win_screen()
+            pygame.display.update()
+            self.clock.tick(60)
+
+            # Check if they click play again or exit
+            event = pygame.event.get()
+            for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+
+                    if 235 <= x <= 535 and 500 <= y <= 560:
+                        # Play again
+                        print('Readied up')
+                        pygame.mixer.music.unpause()
+                        self.get_server_response('new_game')
+
+                    if 235 <= x <= 535 and 600 <= y <= 660:
+                        # Exit
+                        self.get_server_response('quit')
+                        sys.exit()
+
+        self.get_server_response('start_new_game')
+
+        # Adds the readied up message
+        self.win_screen()
+        readied_group.draw(self.window)
         pygame.display.update()
+
+        # If they quit after readying up
+        event = pygame.event.get()
+        for ev in event:
+            if ev.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+
+                if 235 <= x <= 535 and 600 <= y <= 660:
+                    # Exit
+                    self.get_server_response('quit')
+                    sys.exit()

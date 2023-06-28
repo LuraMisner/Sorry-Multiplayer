@@ -6,18 +6,46 @@ from player import Player
 
 class Game:
     def __init__(self):
-        self.player_count = 0
         self.players = []
+        self.logs = {'Red': [], 'Yellow': [], 'Green': [], 'Blue': []}
 
         self.whos_turn = None
         self.deck = Deck()
         self.card = None
 
         self.available_colors = ['Red', 'Yellow', 'Green', 'Blue']
+        self.sorted = False
 
         self.positions = {}
         self.won = False
         self.winner = None
+
+    def order_players(self):
+        """
+        Puts the list of players in order from the first person going clockwise
+        """
+
+        if not self.sorted:
+            order = ['Green', 'Red', 'Blue', 'Yellow']
+            new_list = [self.players.pop(0)]
+            last_seen_color = new_list[0].get_color()
+
+            while self.players:
+                next_color = order[(order.index(last_seen_color) + 1) % 4]
+
+                p = None
+                for player in self.players:
+                    if player.get_color() == next_color:
+                        p = player
+
+                if p:
+                    self.players.remove(p)
+                    new_list.append(p)
+
+                last_seen_color = next_color
+
+            self.players = new_list
+            self.sorted = True
 
     def add_player(self, color) -> bool:
         """
@@ -27,7 +55,6 @@ class Game:
         """
         if color in self.available_colors:
             self.available_colors.remove(color)
-            self.player_count += 1
             self.players.append(Player(color))
             return True
 
@@ -57,10 +84,10 @@ class Game:
         for ind, p in enumerate(self.players):
             if p.get_color() == color:
                 self.players.remove(p)
-                self.player_count -= 1
+                self.available_colors.append(color)
 
                 # If it is their turn make it the next persons turn
-                if self.whos_turn == color and self.player_count > 0:
+                if self.whos_turn == color and len(self.players) > 0:
                     self.whos_turn = self.players[(ind % len(self.players))].get_color()
 
     def get_turn(self) -> str:
@@ -68,7 +95,7 @@ class Game:
         :return: String, color for whose turn it is
         """
         if not self.whos_turn:
-            if self.player_count >= 1:
+            if len(self.players) >= 1:
                 self.whos_turn = self.players[0].get_color()
         return self.whos_turn
 
@@ -76,11 +103,11 @@ class Game:
         """
         Moves the turn to the next player
         """
-        if self.player_count >= 1:
+        if len(self.players) >= 1:
             flag = False
             for ind, p in enumerate(self.players):
                 if p.get_color() == self.whos_turn and not flag:
-                    self.whos_turn = self.players[(ind+1) % self.player_count].get_color()
+                    self.whos_turn = self.players[(ind+1) % len(self.players)].get_color()
                     flag = True
 
     def current_card(self) -> Card:
@@ -135,3 +162,21 @@ class Game:
             if [constants.HOMES[color]] * 4 == self.positions[color]:
                 self.won = True
                 self.winner = color
+
+    def get_msg(self, color) -> str:
+        """
+        Gets a message for the user, if one exists
+        :param color: String of the color
+        :return: String of the message
+        """
+        if len(self.logs[color]) > 0:
+            # Return the first item
+            return self.logs[color].pop(0)
+
+    def add_msg(self, color, msg):
+        """
+        Adds a message to a specified user
+        :param color: String of the color
+        :param msg: String of the message
+        """
+        self.logs[color].append(msg)
