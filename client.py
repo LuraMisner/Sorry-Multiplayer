@@ -7,6 +7,7 @@ import pygame
 from reserved_type import ReservedType
 import sys
 import time
+from volume_slider import VolumeSlider
 
 
 # noinspection PyTypeChecker
@@ -27,9 +28,7 @@ class Client:
         self.initialize_image_groups()
 
         # Background music
-        pygame.mixer.music.load('sounds/background.mp3')
-        pygame.mixer.music.play(-1)
-        pygame.mixer.music.set_volume(.10)
+        self.mixer = VolumeSlider(self.window, 350, 210, 100, .25, 'sounds/background.mp3', 10, constants.BACKGROUND)
 
     def initialize_image_groups(self):
         """
@@ -314,6 +313,7 @@ class Client:
         self.board.draw_board()
         self.draw_players()
         self.draw_card()
+        self.mixer.draw_slider()
 
         # Turn indicator
         reply = self.get_server_response('whos_turn')
@@ -387,6 +387,14 @@ class Client:
         draw_btn.add(Images(315, 535, 'images/titles/draw_btn_space.png'))
         draw_btn.add(draw)
 
+        # TODO:
+        """
+        TODO: In order to add in the animation, code will have to go somewhere here
+        Maybe create an animated object for each card, taking the original card and the new card
+        being displayed.
+        Then go through the animation once the card has been drawn
+        """
+
         self.draw_screen()
         draw_btn.draw(self.window)
         pygame.display.flip()
@@ -397,12 +405,12 @@ class Client:
             event = pygame.event.get()
             for ev in event:
                 if ev.type == pygame.MOUSEBUTTONDOWN and not card_drawn:
+                    self.check_slider()
+
                     pos = pygame.mouse.get_pos()
                     if draw.rect.collidepoint(pos):
                         self.get_server_response('draw_card')
-                        pygame.mixer.music.pause()
-                        pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/card-flip.mp3'))
-                        pygame.mixer.music.unpause()
+                        self.mixer.play_sound('sounds/card-flip.mp3')
                         card_drawn = True
 
                 if ev.type == pygame.KEYDOWN and ev.key == pygame.K_SPACE and not card_drawn:
@@ -486,7 +494,7 @@ class Client:
         self.check_occupied(self.player_positions[self.color][piece_id], piece_id)
 
         # Check if this is the start of a slide
-        time.sleep(.25)
+        time.sleep(.2)
         self.player_positions[self.color][piece_id] = \
             self.check_slide(self.player_positions[self.color][piece_id], piece_id)
         self.get_server_response(f'update_position {self.player_positions[self.color]}')
@@ -499,8 +507,12 @@ class Client:
         # End the turn
         self.get_server_response('end_turn')
 
-    def check_moves(self, possible_moves):
-        # Check if there is at least one end position that isn't a space occupied by your own piece
+    def check_moves(self, possible_moves) -> bool:
+        """
+        Checks if there is at least one move that can be made that isn't to a space occupied by your own piece
+        :param possible_moves: Dictionary mapping pieces to end position
+        :return: Boolean
+        """
         for dic in possible_moves.keys():
             for key in possible_moves[dic].keys():
                 if possible_moves[dic][key] == constants.HOMES[self.color] or \
@@ -510,6 +522,11 @@ class Client:
         return False
 
     def draw_click_icon(self, options):
+        """
+        Draws a select icon on the screen
+        :param options: Dictionary of pieces and their mapped to their valid moves
+        :return: None
+        """
         click_group = pygame.sprite.Group()
         for ind, p in enumerate(self.pieces):
             if options[ind] != {}:
@@ -533,6 +550,9 @@ class Client:
             # Listen for a mouse click
             event = pygame.event.get()
             for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    self.check_slider()
+
                 if ev.type == pygame.MOUSEBUTTONUP:
                     pos = pygame.mouse.get_pos()
 
@@ -728,9 +748,7 @@ class Client:
                         e_ind = self.board.inorder_mapping.index(e)
 
                         # Slide sound effect
-                        pygame.mixer.music.pause()
-                        pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/slide.mp3'))
-                        pygame.mixer.music.unpause()
+                        self.mixer.play_sound('sounds/slide.mp3')
 
                         for i in range(s_ind, e_ind + 1):
                             s_id = self.board.inorder_mapping[i]
@@ -860,6 +878,7 @@ class Client:
             events = pygame.event.get()
             for ev in events:
                 if ev.type == pygame.MOUSEBUTTONDOWN:
+                    self.check_slider()
                     x, y = pygame.mouse.get_pos()
 
                     space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
@@ -1083,6 +1102,8 @@ class Client:
             events = pygame.event.get()
             for ev in events:
                 if ev.type == pygame.MOUSEBUTTONDOWN:
+                    self.check_slider()
+
                     x, y = pygame.mouse.get_pos()
                     space_id = ((y // constants.BOARD_SQUARE) * 16) + (x // constants.BOARD_SQUARE)
 
@@ -1099,6 +1120,10 @@ class Client:
             self.clock.tick(60)
 
     def check_log(self):
+        """
+        Checks if there is a message for the user, if so it displays an image to the user
+        :return: None
+        """
         reply = self.get_server_response('check_log')
         if reply:
             self.draw_screen()
@@ -1113,6 +1138,14 @@ class Client:
             alert.draw(self.window)
             pygame.display.update()
             time.sleep(2)
+
+    def check_slider(self):
+        """
+        Checks if the volume slider was selected
+        :return: None
+        """
+        x, y = pygame.mouse.get_pos()
+        self.mixer.check_slider(x, y)
 
     def win_screen(self):
         """
@@ -1159,14 +1192,14 @@ class Client:
         Draws the win screen and waits for the user to exit, or ready up to play again.
         """
         # Sound effects and images
-        pygame.mixer.music.pause()
+        self.mixer.pause_sound()
 
         readied_group = pygame.sprite.Group()
         readied_group.add(Images(290, 450, 'images/titles/readied_up.png'))
 
         # This allows it to only play the effect once, because we wait for them to ready or exit
         if not self.get_server_response('check_vote'):
-            pygame.mixer.Sound.play(pygame.mixer.Sound('sounds/win.mp3'))
+            self.mixer.play_sound('sounds/win.mp3')
 
         # Check for a button press
         while not self.get_server_response('check_vote') and self.get_server_response('check_won'):
@@ -1183,7 +1216,7 @@ class Client:
                     if 235 <= x <= 535 and 500 <= y <= 560:
                         # Play again
                         print('Readied up')
-                        pygame.mixer.music.unpause()
+                        self.mixer.unpause_sound()
                         self.get_server_response('new_game')
 
                     if 235 <= x <= 535 and 600 <= y <= 660:
