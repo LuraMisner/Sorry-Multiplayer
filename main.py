@@ -34,6 +34,9 @@ def main():
 
         # Check for a quit
         for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                client.check_slider()
+
             if event.type == pygame.QUIT:
                 client.get_server_response('quit')
                 run = False
