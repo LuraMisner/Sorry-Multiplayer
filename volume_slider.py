@@ -51,6 +51,20 @@ class VolumeSlider:
         self.image_group.draw(self.window)
         pygame.display.flip()
 
+    def draw_slider_start(self):
+        """
+        Draws the visual for the volume bar and updates the window
+        :return: None
+        """
+        self.draw_box(self.x - 30, self.y - self.marker_length, self.length + 35, (self.marker_length * 2) + 1,
+                      2, self.background_color, (0, 0, 0))
+
+        pygame.draw.line(self.window, (0, 0, 0), (self.x, self.y), (self.x + self.length, self.y), 4)
+        pygame.draw.line(self.window, (0, 0, 0), (self.current_position, self.y - (self.marker_length // 2)),
+                         (self.current_position, self.y + (self.marker_length // 2)), 4)
+
+        self.image_group.draw(self.window)
+
     def check_slider(self, x_click, y_click):
         """
         Checks if the user clicked around the volume bar
@@ -114,6 +128,10 @@ class VolumeSlider:
         """
         self.x = x
         self.y = y
+
+        for img in self.image_group:
+            img.update_position(self.x - 30, self.y - 12)
+
         self.draw_slider()
 
     def play_sound(self, sound_file):

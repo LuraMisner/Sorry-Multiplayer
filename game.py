@@ -1,4 +1,5 @@
 import constants
+from bot import Bot
 from card import Card
 from deck import Deck
 from player import Player
@@ -53,6 +54,8 @@ class Game:
         :param color: Color of the new player
         :return: Boolean of whether the player was successfully added
         """
+        # TODO: Maybe add that if a bot has the color, let the player have it
+
         if color in self.available_colors:
             self.available_colors.remove(color)
             self.players.append(Player(color))
@@ -180,3 +183,15 @@ class Game:
         :param msg: String of the message
         """
         self.logs[color].append(msg)
+
+    def add_bot(self):
+        if len(self.players) < 4:
+            new_bot = Bot(self.available_colors.pop())
+            self.players.append(new_bot)
+
+    def remove_bot(self):
+        # Remove the first bot found
+        for item in self.players:
+            if item.__class__.__name__ == 'Bot':
+                self.players.remove(item)
+                return

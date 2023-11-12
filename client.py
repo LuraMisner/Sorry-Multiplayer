@@ -28,7 +28,7 @@ class Client:
         self.initialize_image_groups()
 
         # Background music
-        self.mixer = VolumeSlider(self.window, 350, 210, 100, .25, 'sounds/background.mp3', 10, constants.BACKGROUND)
+        self.mixer = VolumeSlider(self.window, 350, 270, 100, .25, 'sounds/background.mp3', 10, constants.BACKGROUND)
 
     def initialize_image_groups(self):
         """
@@ -38,6 +38,12 @@ class Client:
         self.char_select_group.add(Images(223, -50, 'images/start_screen/sorry_title.png'))
         self.char_select_group.add(Images(25, 90, 'images/start_screen/select_a_color.png'))
         self.char_select_group.add(Images(285, 285, 'images/start_screen/pawn2.png'))
+
+        # Start screen menu
+        self.char_select_group.add(Images(275, 490, 'images/start_screen/menu_background.png'))
+        self.char_select_group.add(Images(285, 530, 'images/start_screen/confirm_grey.png'))
+        self.char_select_group.add(Images(285, 590, 'images/start_screen/add_bot.png'))
+        self.char_select_group.add(Images(285, 650, 'images/start_screen/remove_bot.png'))
 
         # Turn specific
         self.your_turn.add(Images(25, 205, 'images/titles/your_turn.png'))
@@ -62,6 +68,7 @@ class Client:
         Draws out the start screen
         :param color: String representing color selected
         """
+
         # Outline the window
         pygame.draw.line(self.window, constants.BLACK, (0, 0), (0, 770), 6)
         pygame.draw.line(self.window, constants.BLACK, (0, 0), (770, 0), 6)
@@ -134,12 +141,12 @@ class Client:
         """
         selected = False
         choice = None
-
         conf_group = pygame.sprite.Group()
         conf_group.add(Images(285, 530, 'images/start_screen/confirm.png'))
 
         while not selected:
             self.draw_start(choice)
+            self.mixer.draw_slider_start()
 
             # Display the number ready
             rdy = self.get_server_response('num_ready')
@@ -148,6 +155,10 @@ class Client:
             # Look for a selection
             event = pygame.event.get()
             for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    self.mixer.check_slider(x, y)
+
                 if ev.type == pygame.MOUSEBUTTONUP:
                     x, y = pygame.mouse.get_pos()
 
@@ -169,7 +180,9 @@ class Client:
 
             # Wait for a selection
             if choice:
-                conf_group.draw(self.window)
+                for img in self.char_select_group:
+                    if img.get_path() == 'images/start_screen/confirm_grey.png':
+                        img.change_path('images/start_screen/confirm.png')
 
             pygame.display.update()
             self.clock.tick(60)
@@ -187,15 +200,19 @@ class Client:
         Function for updating the screen waiting for all players to be ready (after this player is ready)
         """
         start = self.get_server_response('start')
-
         while not start:
             rdy = self.get_server_response('num_ready')
             self.draw_start(self.color)
+            self.mixer.draw_slider_start()
 
             self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 315, 500)
 
             event = pygame.event.get()
             for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    self.mixer.check_slider(x, y)
+
                 if ev.type == pygame.QUIT:
                     self.get_server_response('quit')
                     sys.exit()
@@ -206,6 +223,7 @@ class Client:
             start = self.get_server_response('start')
 
         self.update_positions()
+        self.mixer.change_position(350, 210)
 
     def draw_box(self, x, y, x_length, y_length, outline_width, color, outline):
         """

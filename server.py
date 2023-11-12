@@ -173,6 +173,12 @@ def threaded_client(connect, p_id, game_id):
                     elif data == 'check_vote':
                         reply = vote_new_game[game_id][p_id]
 
+                    elif data == 'add_bot':
+                        game.add_bot()
+
+                    elif data == 'remove_bot':
+                        game.remove_bot()
+
                     # If a player quits, this will remove them from the game
                     elif data == 'quit':
                         if color:
