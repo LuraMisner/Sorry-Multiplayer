@@ -25,9 +25,13 @@ class Game:
         """
         Puts the list of players in order from the first person going clockwise
         """
-
         if not self.sorted:
             order = ['Green', 'Red', 'Blue', 'Yellow']
+
+            # Rotate the list so that there isn't a bot starting
+            while self.players[0].__class__.__name__ == 'Bot':
+                self.players.append(self.players.pop(0))
+
             new_list = [self.players.pop(0)]
             last_seen_color = new_list[0].get_color()
 
@@ -54,7 +58,6 @@ class Game:
         :param color: Color of the new player
         :return: Boolean of whether the player was successfully added
         """
-        # TODO: Maybe add that if a bot has the color, let the player have it
 
         if color in self.available_colors:
             self.available_colors.remove(color)
@@ -108,10 +111,20 @@ class Game:
         """
         if len(self.players) >= 1:
             flag = False
+            bot = False
+
             for ind, p in enumerate(self.players):
                 if p.get_color() == self.whos_turn and not flag:
-                    self.whos_turn = self.players[(ind+1) % len(self.players)].get_color()
+                    player = self.players[(ind+1) % len(self.players)]
+                    self.whos_turn = player.get_color()
+                    if player.__class__.__name__ == 'Bot':
+                        bot = True
                     flag = True
+
+            # TODO: If this next player is a bot, then move them and then go to the next persons turn
+            if bot:
+                # Handle the turn
+                self.next_player()
 
     def current_card(self) -> Card:
         """
@@ -193,5 +206,7 @@ class Game:
         # Remove the first bot found
         for item in self.players:
             if item.__class__.__name__ == 'Bot':
+                # Add the color back to available colors
+                self.available_colors.append(item.get_color())
                 self.players.remove(item)
                 return

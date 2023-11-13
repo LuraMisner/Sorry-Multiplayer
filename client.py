@@ -174,6 +174,12 @@ class Client:
                     elif 385 <= x <= 385 + constants.SELECT_X and 385 <= y <= 385 + constants.SELECT_Y:
                         choice = 'Blue'
 
+                    # Check if they are adding or removing a bot, send request to server
+                    if 285 <= x <= 485 and 590 <= y <= 630:
+                        self.get_server_response('add_bot')
+                    elif 285 <= x <= 485 and 650 <= y <= 690:
+                        self.get_server_response('remove_bot')
+
                 if ev.type == pygame.QUIT:
                     self.get_server_response('quit')
                     sys.exit()
@@ -211,7 +217,15 @@ class Client:
             for ev in event:
                 if ev.type == pygame.MOUSEBUTTONDOWN:
                     x, y = pygame.mouse.get_pos()
+
+                    # Check if the click was on the volume slider
                     self.mixer.check_slider(x, y)
+
+                    # Check if they are adding or removing a bot, send request to server
+                    if 285 <= x <= 485 and 590 <= y <= 630:
+                        self.get_server_response('add_bot')
+                    elif 285 <= x <= 485 and 650 <= y <= 690:
+                        self.get_server_response('remove_bot')
 
                 if ev.type == pygame.QUIT:
                     self.get_server_response('quit')
