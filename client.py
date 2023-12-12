@@ -419,14 +419,6 @@ class Client:
         draw_btn.add(Images(315, 535, 'images/titles/draw_btn_space.png'))
         draw_btn.add(draw)
 
-        # TODO:
-        """
-        TODO: In order to add in the animation, code will have to go somewhere here
-        Maybe create an animated object for each card, taking the original card and the new card
-        being displayed.
-        Then go through the animation once the card has been drawn
-        """
-
         self.draw_screen()
         draw_btn.draw(self.window)
         pygame.display.flip()
