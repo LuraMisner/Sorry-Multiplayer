@@ -125,31 +125,41 @@ class Game:
 
             # If this next player is a bot, then move them
             if bot:
-                old_positions = copy.deepcopy(self.positions)
-
-                # Handle the turn
-                for ind, p in enumerate(self.players):
-                    if p.get_color() == self.whos_turn:
-                        self.draw_card()
-                        self.positions = p.handle_turn(self.positions.copy(), self.current_card())
-
-                        # Check for collision or swap messages
-                        self.check_for_messages(old_positions)
-
-                        while self.current_card().get_value() == Value.Two:
-                            old_positions = copy.deepcopy(self.positions)
-                            # Draw again and do it again until it's not a 2
-                            self.draw_card()
-                            self.positions = p.handle_turn(self.positions.copy(), self.current_card())
-
-                            # Check for collision or swaps
-                            self.check_for_messages(old_positions)
+                self.handle_bot_movement()
 
                 # Move onto the next player
                 self.next_player()
 
-    def check_for_messages(self, old_positions):
+    def handle_bot_movement(self):
+        """
+        Handles the bots turn, updates the positions for after the turn is complete.
+        """
+        old_positions = copy.deepcopy(self.positions)
 
+        # Handle the turn
+        for ind, p in enumerate(self.players):
+            if p.get_color() == self.whos_turn:
+                self.draw_card()
+                self.positions = p.handle_turn(self.positions.copy(), self.current_card())
+
+                # Check for collision or swap messages
+                self.check_for_messages(old_positions)
+
+                while self.current_card().get_value() == Value.Two:
+                    old_positions = copy.deepcopy(self.positions)
+                    # Draw again and do it again until it's not a 2
+                    self.draw_card()
+                    self.positions = p.handle_turn(self.positions.copy(), self.current_card())
+
+                    # Check for collision or swaps
+                    self.check_for_messages(old_positions)
+
+    def check_for_messages(self, old_positions):
+        """
+        Checks to see if any player has been sent home or swapped with to add the alert to their logs
+        :param old_positions: {str: [int]} Positions of pieces before the move
+        :return Nothing
+        """
         for player in self.players:
             if player.__class__.__name__ == 'Player':
                 color = player.get_color()

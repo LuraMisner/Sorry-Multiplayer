@@ -1,5 +1,6 @@
 import constants
 import random
+import time
 from board import Board
 from card_value import Value
 from reserved_type import ReservedType
@@ -44,7 +45,7 @@ class Bot:
         self.positions = new_positions
 
     def handle_turn(self, all_positions, card) -> {str: [int]}:
-        # TODO: Sorry on player side doesnt send bot home, or landing on them
+        # TODO: Test having a user controlled flag to say its ready for the bot to move
         print(self.color, card.get_value())
         # Update positions
         self.all_positions = all_positions
@@ -94,6 +95,7 @@ class Bot:
                     valid_move = True
 
         # Returns the positions back to the server
+        time.sleep(1.5)
         self.update_positions(self.all_positions[self.color])
         print("bot returns this", self.all_positions)
         return self.all_positions

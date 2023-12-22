@@ -108,10 +108,6 @@ def threaded_client(connect, p_id, game_id):
                         positions = literal_eval(data[21:])
                         game.update_all_locations(positions)
 
-                    # Ends the turn and moves to the next player
-                    elif data == 'end_turn':
-                        game.next_player()
-
                     # Returns the players color of whose turn it is
                     elif data == 'whos_turn':
                         reply = game.get_turn()
@@ -126,8 +122,9 @@ def threaded_client(connect, p_id, game_id):
 
                     # Ends the players turn and moves to the next player
                     elif data == 'end_turn':
-                        game.check_win()
-                        game.next_player()
+                        # TODO: Test threading this to make bot turns more smooth
+                        start_new_thread(game.check_win, ())
+                        start_new_thread(game.next_player, ())
 
                     # Check if there's a message for our user
                     elif data == 'check_log':
