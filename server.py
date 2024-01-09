@@ -122,8 +122,8 @@ def threaded_client(connect, p_id, game_id):
 
                     # Ends the players turn and moves to the next player
                     elif data == 'end_turn':
-                        # TODO: Test threading this to make bot turns more smooth
-                        start_new_thread(game.check_win, ())
+                        # TODO: Needs more testing for alerts
+                        game.check_win()
                         start_new_thread(game.next_player, ())
 
                     # Check if there's a message for our user

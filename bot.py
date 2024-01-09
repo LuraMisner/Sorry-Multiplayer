@@ -45,7 +45,6 @@ class Bot:
         self.positions = new_positions
 
     def handle_turn(self, all_positions, card) -> {str: [int]}:
-        # TODO: Test having a user controlled flag to say its ready for the bot to move
         print(self.color, card.get_value())
         # Update positions
         self.all_positions = all_positions

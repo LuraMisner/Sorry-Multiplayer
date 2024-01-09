@@ -1148,20 +1148,26 @@ class Client:
         Checks if there is a message for the user, if so it displays an image to the user
         :return: None
         """
-        reply = self.get_server_response('check_log')
-        if reply:
-            self.draw_screen()
-            alert = pygame.sprite.Group()
+        for i in range(45):
+            # Check if there is a reply
+            reply = self.get_server_response('check_log')
+            if reply:
+                self.draw_screen()
+                alert = pygame.sprite.Group()
 
-            if reply == 'bh':
-                alert.add(Images(25, 285, 'images/titles/sent_start.png'))
-            elif reply == 'swapped':
-                alert.add(Images(25, 285, 'images/titles/swapped_places.png'))
+                if reply == 'bh':
+                    alert.add(Images(25, 285, 'images/titles/sent_start.png'))
+                elif reply == 'swapped':
+                    alert.add(Images(25, 285, 'images/titles/swapped_places.png'))
 
-            # Display the message to the user
-            alert.draw(self.window)
-            pygame.display.update()
-            time.sleep(2)
+                # Display the message to the user
+                alert.draw(self.window)
+                pygame.display.update()
+                time.sleep(1.75)
+                return
+
+            # Wait
+            time.sleep(.01)
 
     def check_slider(self):
         """
@@ -1190,7 +1196,7 @@ class Client:
                 title_group.add(Images(10, 250, 'images/end_screen/you_b.png'))
             elif winner == 'Green':
                 title_group.add(Images(10, 250, 'images/end_screen/you_g.png'))
-            else:
+            elif winner == 'Yellow':
                 title_group.add(Images(10, 250, 'images/end_screen/you_y.png'))
 
         elif winner == 'Red':
@@ -1199,7 +1205,7 @@ class Client:
             title_group.add(Images(10, 100, 'images/end_screen/blue_wins.png'))
         elif winner == 'Green':
             title_group.add(Images(10, 100, 'images/end_screen/green_wins.png'))
-        else:
+        elif winner == 'Yellow':
             title_group.add(Images(10, 100, 'images/end_screen/yellow_wins.png'))
 
         # Play again and Exit buttons
