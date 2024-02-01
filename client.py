@@ -9,6 +9,7 @@ import sys
 import time
 from volume_slider import VolumeSlider
 
+# TODO: Make it so game starts if someone leaves and that makes everyone ready
 
 # noinspection PyTypeChecker
 class Client:
@@ -43,7 +44,7 @@ class Client:
         self.char_select_group.add(Images(275, 490, 'images/start_screen/menu_background.png'))
         self.char_select_group.add(Images(285, 530, 'images/start_screen/confirm_grey.png'))
         self.char_select_group.add(Images(285, 590, 'images/start_screen/add_bot.png'))
-        self.char_select_group.add(Images(285, 650, 'images/start_screen/remove_bot.png'))
+        self.char_select_group.add(Images(285, 650, 'images/start_screen/remove_grey.png'))
 
         # Turn specific
         self.your_turn.add(Images(25, 205, 'images/titles/your_turn.png'))
@@ -176,9 +177,28 @@ class Client:
 
                     # Check if they are adding or removing a bot, send request to server
                     if 285 <= x <= 485 and 590 <= y <= 630:
-                        self.get_server_response('add_bot')
+                        check_full = self.get_server_response('check_full')
+                        if not check_full:
+                            self.get_server_response('add_bot')
+
+                            # Update add button
+                            check_full = self.get_server_response('check_full')
+                            self.change_add_bot_button(not check_full)
+
+                            # Update remove button
+                            self.change_remove_bot_button(True)
+
                     elif 285 <= x <= 485 and 650 <= y <= 690:
-                        self.get_server_response('remove_bot')
+                        bot_exists = self.get_server_response('check_bot')
+                        if bot_exists:
+                            self.get_server_response('remove_bot')
+
+                            # Update remove button
+                            bot_exists = self.get_server_response('check_bot')
+                            self.change_remove_bot_button(bot_exists)
+
+                            # Update add button
+                            self.change_add_bot_button(True)
 
                 if ev.type == pygame.QUIT:
                     self.get_server_response('quit')
@@ -200,6 +220,28 @@ class Client:
         else:
             self.color = choice
             return self.wait_for_start()
+
+    def change_add_bot_button(self, bot_bool):
+        """
+        Changes image of add bot button
+        :param bot_bool: Boolean, whether a new bot can be added
+        """
+        for img in self.char_select_group.sprites():
+            if 'add_bot.png' in img.get_path() and not bot_bool:
+                img.change_path('images/start_screen/add_grey.png')
+            elif 'add_grey.png' in img.get_path() and bot_bool:
+                img.change_path('images/start_screen/add_bot.png')
+
+    def change_remove_bot_button(self, bot_bool):
+        """
+        Changes image of remove bot button
+        :param bot_bool: Boolean, whether a bot exists already
+        """
+        for img in self.char_select_group.sprites():
+            if 'remove_bot.png' in img.get_path() and not bot_bool:
+                img.change_path('images/start_screen/remove_grey.png')
+            elif 'remove_grey.png' in img.get_path() and bot_bool:
+                img.change_path('images/start_screen/remove_bot.png')
 
     def wait_for_start(self):
         """
@@ -223,9 +265,28 @@ class Client:
 
                     # Check if they are adding or removing a bot, send request to server
                     if 285 <= x <= 485 and 590 <= y <= 630:
-                        self.get_server_response('add_bot')
+                        check_full = self.get_server_response('check_full')
+                        if not check_full:
+                            self.get_server_response('add_bot')
+
+                            # Update add button
+                            check_full = self.get_server_response('check_full')
+                            self.change_add_bot_button(not check_full)
+
+                            # Update remove button
+                            self.change_remove_bot_button(True)
+
                     elif 285 <= x <= 485 and 650 <= y <= 690:
-                        self.get_server_response('remove_bot')
+                        bot_exists = self.get_server_response('check_bot')
+                        if bot_exists:
+                            self.get_server_response('remove_bot')
+
+                            # Update remove button
+                            bot_exists = self.get_server_response('check_bot')
+                            self.change_remove_bot_button(bot_exists)
+
+                            # Update add button
+                            self.change_add_bot_button(True)
 
                 if ev.type == pygame.QUIT:
                     self.get_server_response('quit')

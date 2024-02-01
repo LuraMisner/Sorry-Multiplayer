@@ -243,12 +243,29 @@ class Game:
         """
         self.logs[color].append(msg)
 
+    def check_bot(self) -> bool:
+        """
+        Checks if there is at least one bot in play
+        :return: Boolean
+        """
+        for player in self.players:
+            if player.__class__.__name__ == 'Bot':
+                return True
+
+        return False
+
     def add_bot(self):
+        """
+        Adds a bot to the player list
+        """
         if len(self.players) < 4:
             new_bot = Bot(self.available_colors.pop())
             self.players.append(new_bot)
 
     def remove_bot(self):
+        """
+        Removes a bot from the player list if there is one
+        """
         # Remove the first bot found
         for item in self.players:
             if item.__class__.__name__ == 'Bot':
@@ -256,3 +273,11 @@ class Game:
                 self.available_colors.append(item.get_color())
                 self.players.remove(item)
                 return
+
+    def check_full(self) -> bool:
+        """
+        Check if the games full
+        :return: Boolean, whether the game is full
+        """
+        if len(self.players) == 4:
+            return True
