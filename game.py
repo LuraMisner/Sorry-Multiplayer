@@ -1,5 +1,8 @@
 import constants
+import copy
+from bot import Bot
 from card import Card
+from card_value import Value
 from deck import Deck
 from player import Player
 
@@ -24,9 +27,13 @@ class Game:
         """
         Puts the list of players in order from the first person going clockwise
         """
-
         if not self.sorted:
             order = ['Green', 'Red', 'Blue', 'Yellow']
+
+            # Rotate the list so that there isn't a bot starting
+            while self.players[0].__class__.__name__ == 'Bot':
+                self.players.append(self.players.pop(0))
+
             new_list = [self.players.pop(0)]
             last_seen_color = new_list[0].get_color()
 
@@ -53,6 +60,7 @@ class Game:
         :param color: Color of the new player
         :return: Boolean of whether the player was successfully added
         """
+
         if color in self.available_colors:
             self.available_colors.remove(color)
             self.players.append(Player(color))
@@ -105,10 +113,64 @@ class Game:
         """
         if len(self.players) >= 1:
             flag = False
+            bot = False
+
             for ind, p in enumerate(self.players):
                 if p.get_color() == self.whos_turn and not flag:
-                    self.whos_turn = self.players[(ind+1) % len(self.players)].get_color()
+                    player = self.players[(ind+1) % len(self.players)]
+                    self.whos_turn = player.get_color()
+                    if player.__class__.__name__ == 'Bot':
+                        bot = True
                     flag = True
+
+            # If this next player is a bot, then move them
+            if bot:
+                self.handle_bot_movement()
+
+                # Move onto the next player
+                self.next_player()
+
+    def handle_bot_movement(self):
+        """
+        Handles the bots turn, updates the positions for after the turn is complete.
+        """
+        old_positions = copy.deepcopy(self.positions)
+
+        # Handle the turn
+        for ind, p in enumerate(self.players):
+            if p.get_color() == self.whos_turn:
+                self.draw_card()
+                self.positions = p.handle_turn(self.positions.copy(), self.current_card())
+
+                # Check for collision or swap messages
+                self.check_for_messages(old_positions)
+
+                while self.current_card().get_value() == Value.Two:
+                    old_positions = copy.deepcopy(self.positions)
+                    # Draw again and do it again until it's not a 2
+                    self.draw_card()
+                    self.positions = p.handle_turn(self.positions.copy(), self.current_card())
+
+                    # Check for collision or swaps
+                    self.check_for_messages(old_positions)
+
+    def check_for_messages(self, old_positions):
+        """
+        Checks to see if any player has been sent home or swapped with to add the alert to their logs
+        :param old_positions: {str: [int]} Positions of pieces before the move
+        :return Nothing
+        """
+        for player in self.players:
+            if player.__class__.__name__ == 'Player':
+                color = player.get_color()
+
+                for ind, pos in enumerate(old_positions[color]):
+                    if pos != self.positions[color][ind]:
+                        # Check if its back at start or swapped
+                        if self.positions[color][ind] == constants.STARTS[color]:
+                            self.add_msg(color, 'bh')
+                        else:
+                            self.add_msg(color, 'swapped')
 
     def current_card(self) -> Card:
         """
@@ -180,3 +242,42 @@ class Game:
         :param msg: String of the message
         """
         self.logs[color].append(msg)
+
+    def check_bot(self) -> bool:
+        """
+        Checks if there is at least one bot in play
+        :return: Boolean
+        """
+        for player in self.players:
+            if player.__class__.__name__ == 'Bot':
+                return True
+
+        return False
+
+    def add_bot(self):
+        """
+        Adds a bot to the player list
+        """
+        if len(self.players) < 4:
+            new_bot = Bot(self.available_colors.pop())
+            self.players.append(new_bot)
+
+    def remove_bot(self):
+        """
+        Removes a bot from the player list if there is one
+        """
+        # Remove the first bot found
+        for item in self.players:
+            if item.__class__.__name__ == 'Bot':
+                # Add the color back to available colors
+                self.available_colors.append(item.get_color())
+                self.players.remove(item)
+                return
+
+    def check_full(self) -> bool:
+        """
+        Check if the games full
+        :return: Boolean, whether the game is full
+        """
+        if len(self.players) == 4:
+            return True

@@ -63,11 +63,17 @@ def threaded_client(connect, p_id, game_id):
 
                     # Tells client how many players are ready out of the players in this game
                     elif data == 'num_ready':
-                        reply = [len(ready[game_id])]
+                        reply = []
                         num_ready = 0
-                        for player in ready[game_id]:
-                            if player:
+                        total_players = 0
+
+                        # Loop through and count how many total players, and how many of them are ready
+                        for player in ready[game_id].keys():
+                            total_players += 1
+                            if ready[game_id][player]:
                                 num_ready += 1
+
+                        reply.append(total_players)
                         reply.append(num_ready)
 
                     # Verify that this choice is valid
@@ -86,7 +92,15 @@ def threaded_client(connect, p_id, game_id):
 
                     # Check if all players are ready to start
                     elif data == 'start':
-                        reply = all(ready[game_id])
+                        all_ready = True
+
+                        # Loop through and see if anyone isn't ready
+                        print(ready[game_id].keys())
+                        for player in ready[game_id].keys():
+                            if not ready[game_id][player]:
+                                all_ready = False
+
+                        reply = all_ready
 
                         if reply:
                             game.order_players()
@@ -108,10 +122,6 @@ def threaded_client(connect, p_id, game_id):
                         positions = literal_eval(data[21:])
                         game.update_all_locations(positions)
 
-                    # Ends the turn and moves to the next player
-                    elif data == 'end_turn':
-                        game.next_player()
-
                     # Returns the players color of whose turn it is
                     elif data == 'whos_turn':
                         reply = game.get_turn()
@@ -127,7 +137,7 @@ def threaded_client(connect, p_id, game_id):
                     # Ends the players turn and moves to the next player
                     elif data == 'end_turn':
                         game.check_win()
-                        game.next_player()
+                        start_new_thread(game.next_player, ())
 
                     # Check if there's a message for our user
                     elif data == 'check_log':
@@ -173,12 +183,24 @@ def threaded_client(connect, p_id, game_id):
                     elif data == 'check_vote':
                         reply = vote_new_game[game_id][p_id]
 
+                    elif data == 'add_bot':
+                        game.add_bot()
+
+                    elif data == 'remove_bot':
+                        game.remove_bot()
+
+                    elif data == 'check_bot':
+                        reply = game.check_bot()
+
+                    elif data == 'check_full':
+                        reply = game.check_full()
+
                     # If a player quits, this will remove them from the game
                     elif data == 'quit':
                         if color:
                             game.remove_player(color)
 
-                        ready[game_id].pop()
+                        del ready[game_id][p_id]
                         del vote_new_game[game_id][p_id]
 
                     connect.sendall(pickle.dumps(reply))
@@ -193,6 +215,7 @@ def threaded_client(connect, p_id, game_id):
     connect.close()
 
 
+# TODO: Test this part with the new dictionary stuff, make sure it creates new games as appropriate
 g_id = 0
 while True:
     """
@@ -202,18 +225,31 @@ while True:
     """
     conn, addr = s.accept()
     print("Connected to: ", addr)
+    num_in = 0
 
     # If the game is full or already started, then move to a different game
     if g_id in games:
-        if all(ready[g_id]) or len(ready[g_id]) == 4:
+
+        started = True
+        # Loop through and see how many players, or if the game is started
+        for p_ids in ready[g_id].keys():
+            num_in += 1
+            if not ready[g_id][p_ids]:
+                started = False
+
+        # If there's nobody in the game, then it can't be started
+        if num_in == 0:
+            started = False
+
+        if started or num_in == 4:
             g_id += 1
 
     # If the game does not exist, make a new one
     if g_id not in games:
         print("Creating a new game...")
         games[g_id] = Game()
-        ready[g_id] = []
+        ready[g_id] = {}
         vote_new_game[g_id] = {}
 
-    ready[g_id].append(False)
-    start_new_thread(threaded_client, (conn, len(ready[g_id]) - 1, g_id))
+    ready[g_id][num_in] = False
+    start_new_thread(threaded_client, (conn, num_in, g_id))

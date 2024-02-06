@@ -9,6 +9,7 @@ import sys
 import time
 from volume_slider import VolumeSlider
 
+# TODO: Make it so game starts if someone leaves and that makes everyone ready
 
 # noinspection PyTypeChecker
 class Client:
@@ -28,7 +29,7 @@ class Client:
         self.initialize_image_groups()
 
         # Background music
-        self.mixer = VolumeSlider(self.window, 350, 210, 100, .25, 'sounds/background.mp3', 10, constants.BACKGROUND)
+        self.mixer = VolumeSlider(self.window, 350, 270, 100, .25, 'sounds/background.mp3', 10, constants.BACKGROUND)
 
     def initialize_image_groups(self):
         """
@@ -38,6 +39,12 @@ class Client:
         self.char_select_group.add(Images(223, -50, 'images/start_screen/sorry_title.png'))
         self.char_select_group.add(Images(25, 90, 'images/start_screen/select_a_color.png'))
         self.char_select_group.add(Images(285, 285, 'images/start_screen/pawn2.png'))
+
+        # Start screen menu
+        self.char_select_group.add(Images(275, 490, 'images/start_screen/menu_background.png'))
+        self.char_select_group.add(Images(285, 530, 'images/start_screen/confirm_grey.png'))
+        self.char_select_group.add(Images(285, 590, 'images/start_screen/add_bot.png'))
+        self.char_select_group.add(Images(285, 650, 'images/start_screen/remove_grey.png'))
 
         # Turn specific
         self.your_turn.add(Images(25, 205, 'images/titles/your_turn.png'))
@@ -62,6 +69,7 @@ class Client:
         Draws out the start screen
         :param color: String representing color selected
         """
+
         # Outline the window
         pygame.draw.line(self.window, constants.BLACK, (0, 0), (0, 770), 6)
         pygame.draw.line(self.window, constants.BLACK, (0, 0), (770, 0), 6)
@@ -134,12 +142,12 @@ class Client:
         """
         selected = False
         choice = None
-
         conf_group = pygame.sprite.Group()
         conf_group.add(Images(285, 530, 'images/start_screen/confirm.png'))
 
         while not selected:
             self.draw_start(choice)
+            self.mixer.draw_slider_start()
 
             # Display the number ready
             rdy = self.get_server_response('num_ready')
@@ -148,6 +156,10 @@ class Client:
             # Look for a selection
             event = pygame.event.get()
             for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    self.mixer.check_slider(x, y)
+
                 if ev.type == pygame.MOUSEBUTTONUP:
                     x, y = pygame.mouse.get_pos()
 
@@ -163,13 +175,40 @@ class Client:
                     elif 385 <= x <= 385 + constants.SELECT_X and 385 <= y <= 385 + constants.SELECT_Y:
                         choice = 'Blue'
 
+                    # Check if they are adding or removing a bot, send request to server
+                    if 285 <= x <= 485 and 590 <= y <= 630:
+                        check_full = self.get_server_response('check_full')
+                        if not check_full:
+                            self.get_server_response('add_bot')
+
+                            # Update add button
+                            check_full = self.get_server_response('check_full')
+                            self.change_add_bot_button(not check_full)
+
+                            # Update remove button
+                            self.change_remove_bot_button(True)
+
+                    elif 285 <= x <= 485 and 650 <= y <= 690:
+                        bot_exists = self.get_server_response('check_bot')
+                        if bot_exists:
+                            self.get_server_response('remove_bot')
+
+                            # Update remove button
+                            bot_exists = self.get_server_response('check_bot')
+                            self.change_remove_bot_button(bot_exists)
+
+                            # Update add button
+                            self.change_add_bot_button(True)
+
                 if ev.type == pygame.QUIT:
                     self.get_server_response('quit')
                     sys.exit()
 
             # Wait for a selection
             if choice:
-                conf_group.draw(self.window)
+                for img in self.char_select_group:
+                    if img.get_path() == 'images/start_screen/confirm_grey.png':
+                        img.change_path('images/start_screen/confirm.png')
 
             pygame.display.update()
             self.clock.tick(60)
@@ -182,20 +221,73 @@ class Client:
             self.color = choice
             return self.wait_for_start()
 
+    def change_add_bot_button(self, bot_bool):
+        """
+        Changes image of add bot button
+        :param bot_bool: Boolean, whether a new bot can be added
+        """
+        for img in self.char_select_group.sprites():
+            if 'add_bot.png' in img.get_path() and not bot_bool:
+                img.change_path('images/start_screen/add_grey.png')
+            elif 'add_grey.png' in img.get_path() and bot_bool:
+                img.change_path('images/start_screen/add_bot.png')
+
+    def change_remove_bot_button(self, bot_bool):
+        """
+        Changes image of remove bot button
+        :param bot_bool: Boolean, whether a bot exists already
+        """
+        for img in self.char_select_group.sprites():
+            if 'remove_bot.png' in img.get_path() and not bot_bool:
+                img.change_path('images/start_screen/remove_grey.png')
+            elif 'remove_grey.png' in img.get_path() and bot_bool:
+                img.change_path('images/start_screen/remove_bot.png')
+
     def wait_for_start(self):
         """
         Function for updating the screen waiting for all players to be ready (after this player is ready)
         """
         start = self.get_server_response('start')
-
         while not start:
             rdy = self.get_server_response('num_ready')
             self.draw_start(self.color)
+            self.mixer.draw_slider_start()
 
             self.draw_text(f'{rdy[1]} / {rdy[0]} players ready', 24, constants.WHITE, 315, 500)
 
             event = pygame.event.get()
             for ev in event:
+                if ev.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+
+                    # Check if the click was on the volume slider
+                    self.mixer.check_slider(x, y)
+
+                    # Check if they are adding or removing a bot, send request to server
+                    if 285 <= x <= 485 and 590 <= y <= 630:
+                        check_full = self.get_server_response('check_full')
+                        if not check_full:
+                            self.get_server_response('add_bot')
+
+                            # Update add button
+                            check_full = self.get_server_response('check_full')
+                            self.change_add_bot_button(not check_full)
+
+                            # Update remove button
+                            self.change_remove_bot_button(True)
+
+                    elif 285 <= x <= 485 and 650 <= y <= 690:
+                        bot_exists = self.get_server_response('check_bot')
+                        if bot_exists:
+                            self.get_server_response('remove_bot')
+
+                            # Update remove button
+                            bot_exists = self.get_server_response('check_bot')
+                            self.change_remove_bot_button(bot_exists)
+
+                            # Update add button
+                            self.change_add_bot_button(True)
+
                 if ev.type == pygame.QUIT:
                     self.get_server_response('quit')
                     sys.exit()
@@ -206,6 +298,7 @@ class Client:
             start = self.get_server_response('start')
 
         self.update_positions()
+        self.mixer.change_position(350, 210)
 
     def draw_box(self, x, y, x_length, y_length, outline_width, color, outline):
         """
@@ -386,14 +479,6 @@ class Client:
         draw = Images(315, 500, 'images/titles/draw.png')
         draw_btn.add(Images(315, 535, 'images/titles/draw_btn_space.png'))
         draw_btn.add(draw)
-
-        # TODO:
-        """
-        TODO: In order to add in the animation, code will have to go somewhere here
-        Maybe create an animated object for each card, taking the original card and the new card
-        being displayed.
-        Then go through the animation once the card has been drawn
-        """
 
         self.draw_screen()
         draw_btn.draw(self.window)
@@ -1124,20 +1209,26 @@ class Client:
         Checks if there is a message for the user, if so it displays an image to the user
         :return: None
         """
-        reply = self.get_server_response('check_log')
-        if reply:
-            self.draw_screen()
-            alert = pygame.sprite.Group()
+        for i in range(45):
+            # Check if there is a reply
+            reply = self.get_server_response('check_log')
+            if reply:
+                self.draw_screen()
+                alert = pygame.sprite.Group()
 
-            if reply == 'bh':
-                alert.add(Images(25, 285, 'images/titles/sent_start.png'))
-            elif reply == 'swapped':
-                alert.add(Images(25, 285, 'images/titles/swapped_places.png'))
+                if reply == 'bh':
+                    alert.add(Images(25, 285, 'images/titles/sent_start.png'))
+                elif reply == 'swapped':
+                    alert.add(Images(25, 285, 'images/titles/swapped_places.png'))
 
-            # Display the message to the user
-            alert.draw(self.window)
-            pygame.display.update()
-            time.sleep(2)
+                # Display the message to the user
+                alert.draw(self.window)
+                pygame.display.update()
+                time.sleep(1.75)
+                return
+
+            # Wait
+            time.sleep(.01)
 
     def check_slider(self):
         """
@@ -1166,7 +1257,7 @@ class Client:
                 title_group.add(Images(10, 250, 'images/end_screen/you_b.png'))
             elif winner == 'Green':
                 title_group.add(Images(10, 250, 'images/end_screen/you_g.png'))
-            else:
+            elif winner == 'Yellow':
                 title_group.add(Images(10, 250, 'images/end_screen/you_y.png'))
 
         elif winner == 'Red':
@@ -1175,7 +1266,7 @@ class Client:
             title_group.add(Images(10, 100, 'images/end_screen/blue_wins.png'))
         elif winner == 'Green':
             title_group.add(Images(10, 100, 'images/end_screen/green_wins.png'))
-        else:
+        elif winner == 'Yellow':
             title_group.add(Images(10, 100, 'images/end_screen/yellow_wins.png'))
 
         # Play again and Exit buttons
